@@ -14,7 +14,8 @@ export const userRegister = async (req: Request, res: Response) => {
         const requiredFields = ['gameId', 'firstName', 'lastName', 'email', 'password', 'phone', 'dob'];
         for (const field of requiredFields) {
             if (!req.body[field]) {
-                return sendError(res, 400, `Missing required field: ${field}`, ERROR_CODES.MISSING_FIELD);
+                sendError(res, 400, `Missing required field: ${field}`, ERROR_CODES.MISSING_FIELD);
+
             }
         }
 
@@ -22,11 +23,11 @@ export const userRegister = async (req: Request, res: Response) => {
         let securedPassword = await encryptPassword(password);
 
         if (!refreshToken.success) {
-            return sendError(res, 500, `Error while generating refresh token: ${refreshToken.error}`, ERROR_CODES.TOKEN_GENERATION_FAILED);
+            sendError(res, 500, `Error while generating refresh token: ${refreshToken.error}`, ERROR_CODES.TOKEN_GENERATION_FAILED);
         }
 
         if (!securedPassword.success) {
-            return sendError(res, 500, `Error while encrypting password: ${securedPassword.error}`, ERROR_CODES.PASSWORD_ENCRYPTION_FAILED);
+            sendError(res, 500, `Error while encrypting password: ${securedPassword.error}`, ERROR_CODES.PASSWORD_ENCRYPTION_FAILED);
         }
 
         await users.create({
@@ -35,7 +36,7 @@ export const userRegister = async (req: Request, res: Response) => {
 
         let accessToken = await generateToken(gameId, "access");
         if (!accessToken.success) {
-            return sendError(res, 500, `Error while generating access token: ${accessToken.error}`, ERROR_CODES.TOKEN_GENERATION_FAILED);
+            sendError(res, 500, `Error while generating access token: ${accessToken.error}`, ERROR_CODES.TOKEN_GENERATION_FAILED);
         }
 
         const cookieMaxAge = process.env.COOKIE_MAX_AGE ? parseInt(process.env.COOKIE_MAX_AGE) : 60 * 60 * 1000;
@@ -47,9 +48,9 @@ export const userRegister = async (req: Request, res: Response) => {
         });
 
         let response = { gameId, firstName, lastName, accessToken: accessToken.token }
-        return sendSuccess(res, 200, response);
+        sendSuccess(res, 200, response);
     } catch (err) {
-        return sendError(res, 500, `Error while registering new user: ${err}`, ERROR_CODES.SERVER_ERROR);
+        sendError(res, 500, `Error while registering new user: ${err}`, ERROR_CODES.SERVER_ERROR);
     }
 }
 
@@ -57,11 +58,11 @@ export const userLogin = async (req: Request, res: Response) => {
     try {
         const { gameId, email, password } = req.body;
         if (!gameId && !email) {
-            return sendError(res, 400, "Either gameId or email must be provided", ERROR_CODES.MISSING_FIELD);
+            sendError(res, 400, "Either gameId or email must be provided", ERROR_CODES.MISSING_FIELD);
         }
 
         if (!password) {
-            return sendError(res, 400, "Password must be provided", ERROR_CODES.MISSING_FIELD);
+            sendError(res, 400, "Password must be provided", ERROR_CODES.MISSING_FIELD);
         }
 
         let user: any = await users.findOne({
@@ -73,23 +74,23 @@ export const userLogin = async (req: Request, res: Response) => {
             }
         });
         if (!user) {
-            return sendError(res, 404, "User not found", ERROR_CODES.USER_NOT_FOUND);
+            sendError(res, 404, "User not found", ERROR_CODES.USER_NOT_FOUND);
         }
 
         let isPasswordValid = await verifyPassword(password, user.password);
         if (isPasswordValid.error) {
-            return sendError(res, 401, "Invalid password", ERROR_CODES.INVALID_PASSWORD);
+            sendError(res, 401, "Invalid password", ERROR_CODES.INVALID_PASSWORD);
         }
 
         let refreshToken = await generateToken(gameId, "refreshToken");
         let accessToken = await generateToken(gameId, "access");
 
         if (!refreshToken.success) {
-            return sendError(res, 500, `Error while generating refresh token: ${refreshToken.error}`, ERROR_CODES.TOKEN_GENERATION_FAILED);
+            sendError(res, 500, `Error while generating refresh token: ${refreshToken.error}`, ERROR_CODES.TOKEN_GENERATION_FAILED);
         }
 
         if (!accessToken.success) {
-            return sendError(res, 500, `Error while generating access token: ${accessToken.error}`, ERROR_CODES.TOKEN_GENERATION_FAILED);
+            sendError(res, 500, `Error while generating access token: ${accessToken.error}`, ERROR_CODES.TOKEN_GENERATION_FAILED);
 
         }
 
@@ -110,8 +111,8 @@ export const userLogin = async (req: Request, res: Response) => {
             lastName: user.lastName,
             accessToken
         }
-        return sendSuccess(res, 200, response);
+        sendSuccess(res, 200, response);
     } catch (err) {
-        return sendError(res, 500, `Error while registering new user: ${err}`, ERROR_CODES.SERVER_ERROR);
+        sendError(res, 500, `Error while registering new user: ${err}`, ERROR_CODES.SERVER_ERROR);
     }
 }
