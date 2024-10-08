@@ -20,7 +20,7 @@ module.exports = {
       },
       lastName: {
         type: Sequelize.STRING,
-        allowNull: false,
+        allowNull: true,
       },
       email: {
         type: Sequelize.STRING,
@@ -28,6 +28,10 @@ module.exports = {
         unique: true
       },
       password: {
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
+      loginType: {
         type: Sequelize.STRING,
         allowNull: false,
       },
@@ -38,10 +42,16 @@ module.exports = {
       },
       dob: {
         type: Sequelize.STRING,
+        allowNull: true,
       },
       refreshToken: {
-        type: Sequelize.STRING,
+        type: Sequelize.STRING(500),
         allowNull: true,
+      },
+      balance: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        defaultValue: 0
       },
       createdAt: {
         allowNull: false,

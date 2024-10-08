@@ -21,7 +21,7 @@ const Users = sequelize.define<Model<UserAttributes>>('users', {
     },
     lastName: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: true
     },
     email: {
         type: DataTypes.STRING,
@@ -36,7 +36,7 @@ const Users = sequelize.define<Model<UserAttributes>>('users', {
     },
     password: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true,
         validate: {
             is: {
                 args: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/,
@@ -44,24 +44,33 @@ const Users = sequelize.define<Model<UserAttributes>>('users', {
             }
         }
     },
+    loginType: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
     phone: {
         type: DataTypes.STRING,
         allowNull: true,
         unique: true,
-        validate: {
-            is: {
-                args: /^\+\d{1,4}-\d+$/,
-                msg: 'Phone number must be in a valid format (e.g., +1-800-555-5555 or +91-12345-67890)'
-            }
-        }
+        // validate: {
+        //     is: {
+        //         args: /^\+\d{1,4}-\d+$/,
+        //         msg: 'Phone number must be in a valid format (e.g., +1-800-555-5555 or +91-12345-67890)'
+        //     }
+        // }
     },
     dob: {
         type: DataTypes.STRING,
         allowNull: true,
     },
     refreshToken: {
-        type: DataTypes.STRING,
+        type: DataTypes.STRING(500),
         allowNull: true,
+    },
+    balance: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
     }
 }, {
     modelName: 'users',

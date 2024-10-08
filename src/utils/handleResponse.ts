@@ -12,11 +12,11 @@ export const sendSuccess = (res: Response, statusCode: number, data?: any, messa
     if (data) {
         responsePayload.data = data;
     }
-    return res.status(statusCode).json(responsePayload);
+    res.status(statusCode).json(responsePayload);
 }
 
 export const sendError = (res: Response, statusCode: number, error: any, errorCode: string) => {
-    return res.status(statusCode).json({
+    res.status(statusCode).json({
         success: false,
         error,
         errorCode

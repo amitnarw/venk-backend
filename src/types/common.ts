@@ -16,8 +16,10 @@ export interface UserAttributes {
     firstName: string;
     lastName: string;
     email: string;
-    password: string;
+    password?: string;
+    loginType: string;
     phone: string | null;
     dob: string | null;
     refreshToken: string | null;
+    balance: number;
 }

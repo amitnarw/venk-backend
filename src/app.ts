@@ -1,13 +1,22 @@
 import express from 'express';
+import cors from "cors";
 import dotenv from 'dotenv';
-import AuthRouter from "./routes/auth.route";
 dotenv.config({ path: '.env' });
+import AuthRouter from "./routes/auth.route";
 
 const PORT = process.env.PORT;
 const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+var corsOptions = {
+    origin: function (origin: any, callback: any) {
+        callback(null, true);
+    },
+    credentials: true,
+};
+
+app.use(cors(corsOptions));
 
 // app.use('/users',);
 app.use('/auth', AuthRouter);
