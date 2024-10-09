@@ -2,10 +2,10 @@ import jwt from 'jsonwebtoken';
 // import dotenv from 'dotenv';
 // dotenv.config({ path: '.env' });
 
-export const generateToken = async (gameId: string, type: string) => {
+export const generateToken = async (userId: string, type: string) => {
     try {
         const payload = {
-            gameId
+            userId
         }
         const secret = type === "refresh" ? process.env.JWT_SECRET_REFRESH : process.env.JWT_SECRET_ACCESS;
         const options = {

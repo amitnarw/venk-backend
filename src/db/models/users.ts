@@ -11,7 +11,7 @@ const Users = sequelize.define<Model<UserAttributes>>('users', {
         primaryKey: true,
         unique: true
     },
-    gameId: {
+    userId: {
         type: DataTypes.STRING,
         allowNull: false
     },

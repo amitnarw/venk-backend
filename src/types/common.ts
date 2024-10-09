@@ -12,7 +12,7 @@
 
 export interface UserAttributes {
     id?: number;
-    gameId: string;
+    userId: string;
     firstName: string;
     lastName: string;
     email: string;

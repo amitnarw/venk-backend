@@ -38,15 +38,15 @@ export const userRegister = async (req: Request, res: Response) => {
             return sendError(res, 400, `Email address or phone number already registered`, ERROR_CODES.USER_ALREADY_EXISTS);
         }
 
-        const gameId = uuid_v4();
+        const userId = uuid_v4();
 
-        let refreshToken = await generateToken(gameId, "refresh");
+        let refreshToken = await generateToken(userId, "refresh");
         if (!refreshToken.success) {
             return sendError(res, 500, `Error while generating refresh token: ${refreshToken.error}`, ERROR_CODES.TOKEN_GENERATION_FAILED);
         }
 
         let createUser: any = {
-            gameId, firstName, email, loginType, refreshToken: refreshToken.token, balance: 0
+            userId, firstName, email, loginType, refreshToken: refreshToken.token, balance: 0
         }
 
         if (lastName) {
@@ -69,7 +69,7 @@ export const userRegister = async (req: Request, res: Response) => {
 
         await users.create(createUser);
 
-        let accessToken = await generateToken(gameId, "access");
+        let accessToken = await generateToken(userId, "access");
         if (!accessToken.success) {
             return sendError(res, 500, `Error while generating access token: ${accessToken.error}`, ERROR_CODES.TOKEN_GENERATION_FAILED);
         }
@@ -82,7 +82,7 @@ export const userRegister = async (req: Request, res: Response) => {
             sameSite: 'strict'
         });
 
-        let response = { gameId, email, firstName, lastName, phone, dob, balance: 0, accessToken: accessToken?.token }
+        let response = { userId, email, firstName, lastName, phone, dob, balance: 0, accessToken: accessToken?.token }
         return sendSuccess(res, 200, response);
     } catch (err) {
         return sendError(res, 500, `Error while registering new user: ${err}`, ERROR_CODES.SERVER_ERROR);
@@ -117,8 +117,8 @@ export const userLogin = async (req: Request, res: Response) => {
             }
         }
 
-        let refreshToken = await generateToken(user.gameId, "refreshToken");
-        let accessToken = await generateToken(user.gameId, "access");
+        let refreshToken = await generateToken(user.userId, "refreshToken");
+        let accessToken = await generateToken(user.userId, "access");
 
         if (!refreshToken.success) {
             return sendError(res, 500, `Error while generating refresh token: ${refreshToken.error}`, ERROR_CODES.TOKEN_GENERATION_FAILED);
@@ -141,7 +141,7 @@ export const userLogin = async (req: Request, res: Response) => {
         });
 
         let response = {
-            gameId: user.gameId,
+            userId: user.userId,
             firstName: user.firstName,
             lastName: user.lastName,
             phone: user.phone,
@@ -157,17 +157,17 @@ export const userLogin = async (req: Request, res: Response) => {
 
 export const userLogout = async (req: Request, res: Response) => {
     try {
-        const { email, gameId } = req.body;
-        if (!email && !gameId) {
-            return sendError(res, 400, "Either email or gameId must be provided", ERROR_CODES.MISSING_FIELD);
+        const { email, userId } = req.body;
+        if (!email && !userId) {
+            return sendError(res, 400, "Either email or userId must be provided", ERROR_CODES.MISSING_FIELD);
         }
 
         const conditions = [];
         if (email) {
             conditions.push({ email });
         }
-        if (gameId) {
-            conditions.push({ gameId });
+        if (userId) {
+            conditions.push({ userId });
         }
         let user: any = await users.findOne({
             where: {

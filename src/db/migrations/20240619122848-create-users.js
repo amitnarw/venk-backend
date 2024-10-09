@@ -10,7 +10,7 @@ module.exports = {
         type: Sequelize.INTEGER,
         unique: true
       },
-      gameId: {
+      userId: {
         type: Sequelize.STRING,
         allowNull: false,
       },
