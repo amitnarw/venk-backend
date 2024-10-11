@@ -10,7 +10,7 @@ const UserPaymentMethods = sequelize.define('user-payment-methods', {
     type: DataTypes.INTEGER
   },
   userId: {
-    type: DataTypes.NUMBER,
+    type: DataTypes.STRING,
     allowNull: false,
   },
   method: {

@@ -2,14 +2,22 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('user-payment-methods', {
+    await queryInterface.createTable('user-transactions', {
       id: {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
         type: Sequelize.INTEGER
       },
+      transactionId: {
+        type: Sequelize.STRING,
+        allowNull: false,
+      },
       userId: {
+        type: Sequelize.STRING,
+        allowNull: false,
+      },
+      type: {
         type: Sequelize.STRING,
         allowNull: false,
       },
@@ -18,12 +26,20 @@ module.exports = {
         allowNull: false,
       },
       details: {
-        type: Sequelize.JSON,
+        type: Sequelize.STRING,
+        allowNull: true,
+      },
+      amount: {
+        type: Sequelize.DECIMAL,
         allowNull: false,
       },
-      default: {
-        type: Sequelize.BOOLEAN,
-        allowNull: true,
+      status: {
+        type: Sequelize.ENUM('pending', 'completed', 'failed'),
+        allowNull: false,
+      },
+      effect: {
+        type: Sequelize.ENUM('add', 'subtract'),
+        allowNull: false,
       },
       createdAt: {
         allowNull: false,
@@ -36,6 +52,6 @@ module.exports = {
     });
   },
   async down(queryInterface, Sequelize) {
-    await queryInterface.dropTable('user-payment-methods');
+    await queryInterface.dropTable('user-transactions');
   }
 };
