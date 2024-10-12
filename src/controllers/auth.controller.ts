@@ -1,6 +1,6 @@
 import { Request, Response } from "express"
 import { v4 as uuid_v4 } from 'uuid';
-import { users } from "../db/models";
+import { Users } from "../db/models";
 import { encryptPassword, verifyPassword } from "../utils/handlePassword";
 import { sendError, sendSuccess } from "../utils/handleResponse";
 import { generateToken } from "../utils/handleToken";
@@ -29,7 +29,7 @@ export const userRegister = async (req: Request, res: Response) => {
             conditions.push({ phone });
         }
 
-        let resp = await users.findOne({
+        let resp = await Users.findOne({
             where: {
                 [Op.or]: conditions
             }
@@ -67,7 +67,7 @@ export const userRegister = async (req: Request, res: Response) => {
             createUser.password = securedPassword
         }
 
-        await users.create(createUser);
+        await Users.create(createUser);
 
         let accessToken = await generateToken(userId, "access");
         if (!accessToken.success) {
@@ -100,7 +100,7 @@ export const userLogin = async (req: Request, res: Response) => {
             return sendError(res, 400, "Invalid email address format", ERROR_CODES.INVALID_EMAIL);
         }
 
-        let user: any = await users.findOne({
+        let user: any = await Users.findOne({
             where: {
                 email,
                 loginType
@@ -169,7 +169,7 @@ export const userLogout = async (req: Request, res: Response) => {
         if (userId) {
             conditions.push({ userId });
         }
-        let user: any = await users.findOne({
+        let user: any = await Users.findOne({
             where: {
                 [Op.or]: conditions
             }
