@@ -3,6 +3,8 @@ import cors from "cors";
 import dotenv from 'dotenv';
 dotenv.config({ path: '.env' });
 import AuthRouter from "./routes/auth.route";
+import UsersRouter from "./routes/users.route";
+import PaymentsRouter from "./routes/payments.route";
 
 const PORT = process.env.PORT;
 const app = express();
@@ -18,8 +20,9 @@ var corsOptions = {
 
 app.use(cors(corsOptions));
 
-// app.use('/users',);
 app.use('/auth', AuthRouter);
+app.use('/users', UsersRouter);
+app.use('/payment', PaymentsRouter);
 
 app.listen(PORT, () => {
     console.log(`Server started on port ${PORT}`);

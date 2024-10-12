@@ -3,3 +3,5 @@ import express from "express";
 const router = express();
 
 router.route("/get").get(getPaymentMethods);
+
+export default router;
