@@ -14,11 +14,22 @@ const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 export const userRegister = async (req: Request, res: Response) => {
     try {
         const { firstName, lastName, email, password, loginType, phone, dob } = req.body;
-        const requiredFields = ['firstName', 'email', "loginType"];
-        for (const field of requiredFields) {
-            if (!req.body[field] || req.body[field] === "") {
-                return sendError(res, 400, `Missing required field: ${field}`, ERROR_CODES.MISSING_FIELD);
-            }
+
+        if (!loginType || loginType === "") {
+            return sendError(res, 400, `Please provide loginType`, ERROR_CODES.MISSING_FIELD);
+        }
+
+        if (loginType === "email" && !email) {
+            return sendError(res, 400, "Email address must be provided if loginType is email", ERROR_CODES.INVALID_VALUE);
+        } 
+        if (email && !emailRegex.test(email)) {
+            return sendError(res, 400, "Invalid email address format", ERROR_CODES.INVALID_EMAIL);
+        }
+        if (loginType === "password" && !password) {
+            return sendError(res, 400, "Password must be provided if loginType is password", ERROR_CODES.INVALID_VALUE);
+        }
+        if (loginType === "phone" && !phone) {
+            return sendError(res, 400, "Phone number must be provided if loginType is phone", ERROR_CODES.INVALID_VALUE);
         }
 
         const conditions = [];
@@ -26,7 +37,7 @@ export const userRegister = async (req: Request, res: Response) => {
             conditions.push({ email });
         }
         if (phone) {
-            conditions.push({ phone });
+            conditions.push({ phone: phone.toString() });
         }
 
         let resp = await Users.findOne({
@@ -35,10 +46,10 @@ export const userRegister = async (req: Request, res: Response) => {
             }
         });
         if (resp) {
-            return sendError(res, 400, `Email address or phone number already registered`, ERROR_CODES.USER_ALREADY_EXISTS);
+            return sendError(res, 409, `Email address or phone number already registered`, ERROR_CODES.USER_ALREADY_EXISTS);
         }
 
-        const userId = uuid_v4();
+        const userId = await uuid_v4();
 
         let refreshToken = await generateToken(userId, "refresh");
         if (!refreshToken.success) {
@@ -46,14 +57,20 @@ export const userRegister = async (req: Request, res: Response) => {
         }
 
         let createUser: any = {
-            userId, firstName, email, loginType, refreshToken: refreshToken.token, balance: 0
+            userId, loginType, refreshToken: refreshToken.token, balance: 0
         }
 
+        if (email) {
+            createUser.email = email;
+        }
+        if (firstName) {
+            createUser.firstName = firstName;
+        }
         if (lastName) {
             createUser.lastName = lastName;
         }
         if (phone) {
-            createUser.phone = phone;
+            createUser.phone = phone.toString();
         }
         if (dob) {
             createUser.dob = dob;
@@ -91,19 +108,36 @@ export const userRegister = async (req: Request, res: Response) => {
 
 export const userLogin = async (req: Request, res: Response) => {
     try {
-        const { email, password, loginType } = req.body;
-        if (!email || !loginType || email === "" || loginType === "") {
-            return sendError(res, 400, "Email and login type must be provided", ERROR_CODES.MISSING_FIELD);
+        const { email, password, phone, loginType } = req.body;
+        if (!loginType || loginType === "") {
+            return sendError(res, 400, "Login type must be provided", ERROR_CODES.MISSING_FIELD);
         }
 
-        if (!emailRegex.test(email)) {
+        if (loginType === "email" && !email) {
+            return sendError(res, 400, "Email address must be provided if loginType is email", ERROR_CODES.INVALID_VALUE);
+        }
+        if (email && !emailRegex.test(email)) {
             return sendError(res, 400, "Invalid email address format", ERROR_CODES.INVALID_EMAIL);
+        }
+
+        if (loginType === "password" && !password) {
+            return sendError(res, 400, "Password must be provided if loginType is password", ERROR_CODES.INVALID_VALUE);
+        }
+        if (loginType === "phone" && !phone) {
+            return sendError(res, 400, "Phone number must be provided if loginType is phone", ERROR_CODES.INVALID_VALUE);
+        }
+
+        const conditions = [];
+        if (email) {
+            conditions.push({ email });
+        }
+        if (phone) {
+            conditions.push({ phone: phone.toString() });
         }
 
         let user: any = await Users.findOne({
             where: {
-                email,
-                loginType
+                [Op.or]: conditions
             }
         });
         if (!user) {
@@ -157,21 +191,14 @@ export const userLogin = async (req: Request, res: Response) => {
 
 export const userLogout = async (req: Request, res: Response) => {
     try {
-        const { email, userId } = req.body;
-        if (!email && !userId) {
-            return sendError(res, 400, "Either email or userId must be provided", ERROR_CODES.MISSING_FIELD);
+        const { userId } = req.body;
+        if (!userId) {
+            return sendError(res, 400, "userId must be provided", ERROR_CODES.MISSING_FIELD);
         }
 
-        const conditions = [];
-        if (email) {
-            conditions.push({ email });
-        }
-        if (userId) {
-            conditions.push({ userId });
-        }
         let user: any = await Users.findOne({
             where: {
-                [Op.or]: conditions
+                userId
             }
         });
         if (!user) {

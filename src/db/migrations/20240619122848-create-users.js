@@ -16,7 +16,7 @@ module.exports = {
       },
       firstName: {
         type: Sequelize.STRING,
-        allowNull: false,
+        allowNull: true,
       },
       lastName: {
         type: Sequelize.STRING,
@@ -24,7 +24,7 @@ module.exports = {
       },
       email: {
         type: Sequelize.STRING,
-        allowNull: false,
+        allowNull: true,
         unique: true
       },
       password: {
@@ -32,7 +32,7 @@ module.exports = {
         allowNull: true,
       },
       loginType: {
-        type: Sequelize.STRING,
+        type: Sequelize.ENUM('email', 'password', 'phone'),
         allowNull: false,
       },
       phone: {

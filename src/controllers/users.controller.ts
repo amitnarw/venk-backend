@@ -1,8 +1,8 @@
-import sequelize from "db/dbConnect";
-import { Users, UserTransactions } from "db/models";
+import sequelize from "../db/dbConnect";
+import { Users, UserTransactions } from "../db/models";
 import { Request, Response } from "express";
-import { ERROR_CODES } from "utils/handleErrorCode";
-import { sendSuccess, sendError } from "utils/handleResponse";
+import { ERROR_CODES } from "../utils/handleErrorCode";
+import { sendSuccess, sendError } from "../utils/handleResponse";
 
 const checkUserInDB = async (req: Request, res: Response) => {
     const { userId } = req.body;
@@ -26,12 +26,23 @@ const checkUserInDB = async (req: Request, res: Response) => {
 
 export const getUserDetails = async (req: Request, res: Response) => {
     try {
-        let checkUser: any = await checkUserInDB(req, res);
-        if (checkUser?.result) {
-            return sendSuccess(res, 200, checkUser?.details);
-        } else {
+        let { userId } = req.params;
+
+        if (!userId) {
+            return sendError(res, 400, 'Please send userId', ERROR_CODES.MISSING_FIELD);
+        }
+
+        let resp = await Users.findOne({
+            where: {
+                userId
+            },
+            attributes: ["userId", "firstName", "lastName", "email", "phone", "dob", 'balance']
+        });
+
+        if (!resp) {
             return sendError(res, 404, "User not found", ERROR_CODES.USER_NOT_FOUND);
         }
+        return sendSuccess(res, 200, resp);
 
     } catch (err) {
         return sendError(res, 500, `Error while getting user information: ${err}`, ERROR_CODES.SERVER_ERROR);
@@ -40,18 +51,31 @@ export const getUserDetails = async (req: Request, res: Response) => {
 
 export const getUserTransactions = async (req: Request, res: Response) => {
     try {
-        let checkUser: any = await checkUserInDB(req, res);
-        if (checkUser?.result) {
-            let resp2 = await UserTransactions.findAndCountAll({
-                where: {
-                    userId: checkUser?.details?.userId
-                }
-            });
-    
-            return sendSuccess(res, 200, resp2);
-        } else {
+        let { userId } = req.params;
+        console.log(req.params)
+        if (!userId) {
+            return sendError(res, 400, 'Please send userId', ERROR_CODES.MISSING_FIELD);
+        }
+
+        let resp = await Users.findOne({
+            where: {
+                userId
+            },
+            attributes: ["userId", "firstName", "lastName", "email", "phone", "dob", 'balance']
+        });
+
+        if (!resp) {
             return sendError(res, 404, "User not found", ERROR_CODES.USER_NOT_FOUND);
         }
+
+        let resp2 = await UserTransactions.findAndCountAll({
+            where: {
+                userId
+            }
+        });
+
+        return sendSuccess(res, 200, resp2);
+
     } catch (err) {
         return sendError(res, 500, `Error while getting user transactions: ${err}`, ERROR_CODES.SERVER_ERROR);
     }
@@ -91,6 +115,10 @@ export const createUserTransaction = async (req: Request, res: Response) => {
                 if (effect === "add") {
                     newBalance += amount;
                 } else if (effect === "subtract") {
+                    if(newBalance - amount < 0){
+                        await transaction.rollback();
+                        return sendError(res, 400, "Insufficient balance", ERROR_CODES.INVALID_VALUE);
+                    }
                     newBalance -= amount;
                 }
 
@@ -104,6 +132,7 @@ export const createUserTransaction = async (req: Request, res: Response) => {
 
             return sendSuccess(res, 200, "Transaction added");
         } else {
+            await transaction.rollback();
             return sendError(res, 404, "User not found", ERROR_CODES.USER_NOT_FOUND);
         }
     } catch (err) {

@@ -2,7 +2,7 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../dbConnect';
 
-const PaymentMethods = sequelize.define('payment-methods', {
+const UserPaymentMethods = sequelize.define('user-payment-methods', {
   id: {
     allowNull: false,
     autoIncrement: true,
@@ -26,8 +26,8 @@ const PaymentMethods = sequelize.define('payment-methods', {
     allowNull: true,
   },
 }, {
-  modelName: 'payment-methods',
+  modelName: 'user-payment-methods',
   timestamps: true,
 });
 
-export default PaymentMethods;
+export default UserPaymentMethods;

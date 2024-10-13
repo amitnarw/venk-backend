@@ -17,7 +17,7 @@ const Users = sequelize.define<Model<UserAttributes>>('users', {
     },
     firstName: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: true
     },
     lastName: {
         type: DataTypes.STRING,
@@ -26,7 +26,7 @@ const Users = sequelize.define<Model<UserAttributes>>('users', {
     email: {
         type: DataTypes.STRING,
         unique: true,
-        allowNull: false,
+        allowNull: true,
         validate: {
             is: {
                 args: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
@@ -45,19 +45,13 @@ const Users = sequelize.define<Model<UserAttributes>>('users', {
         }
     },
     loginType: {
-        type: DataTypes.STRING,
-        allowNull: true,
+        type: DataTypes.ENUM('email', 'password', 'phone'),
+        allowNull: false,
     },
     phone: {
         type: DataTypes.STRING,
         allowNull: true,
         unique: true,
-        // validate: {
-        //     is: {
-        //         args: /^\+\d{1,4}-\d+$/,
-        //         msg: 'Phone number must be in a valid format (e.g., +1-800-555-5555 or +91-12345-67890)'
-        //     }
-        // }
     },
     dob: {
         type: DataTypes.STRING,
