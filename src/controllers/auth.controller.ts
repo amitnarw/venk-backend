@@ -6,8 +6,7 @@ import { sendError, sendSuccess } from "../utils/handleResponse";
 import { generateToken } from "../utils/handleToken";
 import { ERROR_CODES } from "../utils/handleErrorCode";
 import { Op } from "sequelize";
-// import dotenv from 'dotenv';
-// dotenv.config({ path: '.env' });
+import { AuthenticatedRequest } from "types/common";
 
 const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
@@ -21,7 +20,7 @@ export const userRegister = async (req: Request, res: Response) => {
 
         if (loginType === "email" && !email) {
             return sendError(res, 400, "Email address must be provided if loginType is email", ERROR_CODES.INVALID_VALUE);
-        } 
+        }
         if (email && !emailRegex.test(email)) {
             return sendError(res, 400, "Invalid email address format", ERROR_CODES.INVALID_EMAIL);
         }
@@ -189,9 +188,9 @@ export const userLogin = async (req: Request, res: Response) => {
     }
 }
 
-export const userLogout = async (req: Request, res: Response) => {
+export const userLogout = async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const { userId } = req.body;
+        const userId = req?.userId;
         if (!userId) {
             return sendError(res, 400, "userId must be provided", ERROR_CODES.MISSING_FIELD);
         }

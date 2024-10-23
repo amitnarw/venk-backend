@@ -11,6 +11,7 @@ const UserTransactions = sequelize.define('user-transactions', {
   },
   transactionId: {
     type: DataTypes.STRING,
+    unique: true,
     allowNull: false,
   },
   userId: {

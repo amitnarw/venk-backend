@@ -4,25 +4,6 @@ import { Request, Response } from "express";
 import { ERROR_CODES } from "../utils/handleErrorCode";
 import { sendSuccess, sendError } from "../utils/handleResponse";
 
-const checkUserInDB = async (req: Request, res: Response) => {
-    const { userId } = req.body;
-    if (!userId) {
-        return sendError(res, 400, "Please provide userId", ERROR_CODES.MISSING_FIELD);
-    }
-
-    let resp = await Users.findOne({
-        where: {
-            userId
-        },
-        attributes: ["userId", "firstName", "lastName", "email", "phone", "dob", 'balance']
-    });
-
-    if (!resp) {
-        return sendError(res, 404, "User not found", ERROR_CODES.USER_NOT_FOUND);
-    }
-
-    return { result: true, details: resp };
-}
 
 export const getUserDetails = async (req: Request, res: Response) => {
     try {
@@ -52,7 +33,6 @@ export const getUserDetails = async (req: Request, res: Response) => {
 export const getUserTransactions = async (req: Request, res: Response) => {
     try {
         let { userId } = req.params;
-        console.log(req.params)
         if (!userId) {
             return sendError(res, 400, 'Please send userId', ERROR_CODES.MISSING_FIELD);
         }
@@ -82,11 +62,22 @@ export const getUserTransactions = async (req: Request, res: Response) => {
 }
 
 export const createUserTransaction = async (req: Request, res: Response) => {
-    const transaction = await sequelize.transaction();
 
     try {
-        let checkUser: any = await checkUserInDB(req, res);
         const { userId, transactionId, type, method, details, amount, status, effect } = req.body;
+        if (!transactionId || !userId || !type || !method || !amount) {
+            return sendError(res, 400, 'Please send transactionId, userId, type, method and amount', ERROR_CODES.MISSING_FIELD);
+        }
+    
+        let checkUser: any = await Users.findOne({
+            where: {
+                userId
+            },
+            attributes: ["userId", "firstName", "lastName", "email", "phone", "dob", 'balance']
+        });
+        if (!checkUser) {
+            return sendError(res, 404, "User not found", ERROR_CODES.USER_NOT_FOUND);
+        }
 
         const validStatuses = ['pending', 'completed', 'failed'];
         const validEffects = ['add', 'subtract'];
@@ -97,46 +88,43 @@ export const createUserTransaction = async (req: Request, res: Response) => {
             return sendError(res, 400, 'Invalid effect value. Allowed values are: add, subtract.', ERROR_CODES.INVALID_VALUE);
         }
 
-        if (checkUser?.result) {
-            let resp = await UserTransactions.create({
-                transactionId,
-                userId,
-                type,
-                method,
-                details,
-                amount,
-                status,
-                effect
-            }, { transaction });
+        const transaction = await sequelize.transaction();
 
-            if (resp) {
-                let newBalance: number = checkUser?.details?.balance;
+        let resp = await UserTransactions.create({
+            transactionId,
+            userId,
+            type,
+            method,
+            details,
+            amount,
+            status,
+            effect
+        }, { transaction });
 
-                if (effect === "add") {
-                    newBalance += amount;
-                } else if (effect === "subtract") {
-                    if(newBalance - amount < 0){
-                        await transaction.rollback();
-                        return sendError(res, 400, "Insufficient balance", ERROR_CODES.INVALID_VALUE);
-                    }
-                    newBalance -= amount;
+        if (resp) {
+            let newBalance: number = checkUser?.balance;
+
+            if (effect === "add") {
+                newBalance += amount;
+            } else if (effect === "subtract") {
+                if (newBalance - amount < 0) {
+                    await transaction.rollback();
+                    return sendError(res, 400, "Insufficient balance", ERROR_CODES.INVALID_VALUE);
                 }
-
-                await Users.update(
-                    { balance: newBalance },
-                    { where: { userId }, transaction }
-                );
-
-                await transaction.commit();
+                newBalance -= amount;
             }
 
-            return sendSuccess(res, 200, "Transaction added");
-        } else {
-            await transaction.rollback();
-            return sendError(res, 404, "User not found", ERROR_CODES.USER_NOT_FOUND);
+            await Users.update(
+                { balance: newBalance },
+                { where: { userId }, transaction }
+            );
+
+            await transaction.commit();
         }
+
+        return sendSuccess(res, 200, "Transaction added");
+
     } catch (err) {
-        await transaction.rollback();
         return sendError(res, 500, `Error while adding user transaction: ${err}`, ERROR_CODES.SERVER_ERROR);
     }
 };

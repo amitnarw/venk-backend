@@ -5,6 +5,7 @@ dotenv.config({ path: '.env' });
 import AuthRouter from "./routes/auth.route";
 import UsersRouter from "./routes/users.route";
 import PaymentsRouter from "./routes/payments.route";
+import accessControl from './middlewares/accessControl';
 
 const PORT = process.env.PORT;
 const app = express();
@@ -21,8 +22,8 @@ var corsOptions = {
 app.use(cors(corsOptions));
 
 app.use('/auth', AuthRouter);
-app.use('/users', UsersRouter);
-app.use('/payment', PaymentsRouter);
+app.use('/users', accessControl, UsersRouter);
+app.use('/payment', accessControl, PaymentsRouter);
 
 app.use((req, res) => {
     res.status(404).json({ message: "Route not found" });

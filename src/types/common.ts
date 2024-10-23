@@ -1,3 +1,5 @@
+import { Request } from "express";
+
 // export interface RefreshTokenAttributes {
 //     token?: string,
 //     error?: unknown,
@@ -22,4 +24,8 @@ export interface UserAttributes {
     dob: string | null;
     refreshToken: string | null;
     balance: number;
+}
+
+export interface AuthenticatedRequest extends Request {
+    userId?: any;
 }

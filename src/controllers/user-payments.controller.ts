@@ -38,7 +38,7 @@ export const createUserPaymentMethod = async (req: Request, res: Response) => {
             where: {
                 userId
             },
-            attributes: ["userId", "firstName", "lastName", "email", "phone", "dob", 'balance']
+            attributes: ["userId"]
         });
 
         if (!resp) {
