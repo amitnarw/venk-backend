@@ -15,6 +15,7 @@ import { Request } from "express";
 export interface UserAttributes {
     id?: number;
     userId: string;
+    img: string;
     firstName: string;
     lastName: string;
     email: string;

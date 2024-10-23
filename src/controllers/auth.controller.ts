@@ -12,7 +12,7 @@ const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 export const userRegister = async (req: Request, res: Response) => {
     try {
-        const { firstName, lastName, email, password, loginType, phone, dob } = req.body;
+        const { img, firstName, lastName, email, password, loginType, phone, dob } = req.body;
 
         if (!loginType || loginType === "") {
             return sendError(res, 400, `Please provide loginType`, ERROR_CODES.MISSING_FIELD);
@@ -62,6 +62,9 @@ export const userRegister = async (req: Request, res: Response) => {
         if (email) {
             createUser.email = email;
         }
+        if (img) {
+            createUser.img = img;
+        }
         if (firstName) {
             createUser.firstName = firstName;
         }
@@ -107,9 +110,9 @@ export const userRegister = async (req: Request, res: Response) => {
 
 export const userLogin = async (req: Request, res: Response) => {
     try {
-        const { email, password, phone, loginType } = req.body;
+        const { img, firstName, lastName, email, password, loginType, phone, dob } = req.body;
         if (!loginType || loginType === "") {
-            return sendError(res, 400, "Login type must be provided", ERROR_CODES.MISSING_FIELD);
+            return sendError(res, 400, "loginType must be provided", ERROR_CODES.MISSING_FIELD);
         }
 
         if (loginType === "email" && !email) {
@@ -139,8 +142,67 @@ export const userLogin = async (req: Request, res: Response) => {
                 [Op.or]: conditions
             }
         });
+
         if (!user) {
-            return sendError(res, 404, "User not found", ERROR_CODES.USER_NOT_FOUND);
+            const userId = await uuid_v4();
+
+            let refreshToken2 = await generateToken(userId, "refreshToken");
+            let accessToken2 = await generateToken(userId, "access");
+    
+            if (!refreshToken2.success) {
+                return sendError(res, 500, `Error while generating refresh token: ${refreshToken2.error}`, ERROR_CODES.TOKEN_GENERATION_FAILED);
+            }
+    
+            if (!accessToken2.success) {
+                return sendError(res, 500, `Error while generating access token: ${accessToken2.error}`, ERROR_CODES.TOKEN_GENERATION_FAILED);
+            }
+            let createUser: any = {
+                userId, loginType, refreshToken: refreshToken2.token, balance: 0
+            }
+    
+            if (email) {
+                createUser.email = email;
+            }
+            if (img) {
+                createUser.img = img;
+            }
+            if (firstName) {
+                createUser.firstName = firstName;
+            }
+            if (lastName) {
+                createUser.lastName = lastName;
+            }
+            if (phone) {
+                createUser.phone = phone.toString();
+            }
+            if (dob) {
+                createUser.dob = dob;
+            }
+    
+            if (password) {
+                let securedPassword = await encryptPassword(password);
+                if (!securedPassword.success) {
+                    return sendError(res, 500, `Error while encrypting password: ${securedPassword.error}`, ERROR_CODES.PASSWORD_ENCRYPTION_FAILED);
+                }
+                createUser.password = securedPassword
+            }
+    
+            await Users.create(createUser);
+
+            if (!accessToken2.success) {
+                return sendError(res, 500, `Error while generating access token: ${accessToken2.error}`, ERROR_CODES.TOKEN_GENERATION_FAILED);
+            }
+    
+            const cookieMaxAge = process.env.COOKIE_MAX_AGE ? parseInt(process.env.COOKIE_MAX_AGE) : 60 * 60 * 1000;
+            res.cookie('accessToken', accessToken2.token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                maxAge: cookieMaxAge,
+                sameSite: 'strict'
+            });
+    
+            let response = { img, userId, email, firstName, lastName, phone, dob, balance: 0, accessToken: accessToken2?.token }
+            return sendSuccess(res, 200, response);
         }
 
         if (password) {
@@ -150,6 +212,7 @@ export const userLogin = async (req: Request, res: Response) => {
             }
         }
 
+        
         let refreshToken = await generateToken(user.userId, "refreshToken");
         let accessToken = await generateToken(user.userId, "access");
 
@@ -159,7 +222,6 @@ export const userLogin = async (req: Request, res: Response) => {
 
         if (!accessToken.success) {
             return sendError(res, 500, `Error while generating access token: ${accessToken.error}`, ERROR_CODES.TOKEN_GENERATION_FAILED);
-
         }
 
         user.refreshToken = refreshToken.token;
@@ -175,6 +237,7 @@ export const userLogin = async (req: Request, res: Response) => {
 
         let response = {
             userId: user.userId,
+            img: user.img,
             firstName: user.firstName,
             lastName: user.lastName,
             phone: user.phone,

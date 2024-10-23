@@ -15,6 +15,10 @@ const Users = sequelize.define<Model<UserAttributes>>('users', {
         type: DataTypes.STRING,
         allowNull: false
     },
+    img: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     firstName: {
         type: DataTypes.STRING,
         allowNull: true
