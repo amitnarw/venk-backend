@@ -12,7 +12,7 @@ const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 export const userRegister = async (req: Request, res: Response) => {
     try {
-        const { img, firstName, lastName, email, password, loginType, phone, dob } = req.body;
+        const { img, firstName, lastName, email, password, loginType, phone, dob } = await req.body;
 
         if (!loginType || loginType === "") {
             return sendError(res, 400, `Please provide loginType`, ERROR_CODES.MISSING_FIELD);
@@ -148,18 +148,18 @@ export const userLogin = async (req: Request, res: Response) => {
 
             let refreshToken2 = await generateToken(userId, "refreshToken");
             let accessToken2 = await generateToken(userId, "access");
-    
+
             if (!refreshToken2.success) {
                 return sendError(res, 500, `Error while generating refresh token: ${refreshToken2.error}`, ERROR_CODES.TOKEN_GENERATION_FAILED);
             }
-    
+
             if (!accessToken2.success) {
                 return sendError(res, 500, `Error while generating access token: ${accessToken2.error}`, ERROR_CODES.TOKEN_GENERATION_FAILED);
             }
             let createUser: any = {
                 userId, loginType, refreshToken: refreshToken2.token, balance: 0
             }
-    
+
             if (email) {
                 createUser.email = email;
             }
@@ -178,7 +178,7 @@ export const userLogin = async (req: Request, res: Response) => {
             if (dob) {
                 createUser.dob = dob;
             }
-    
+
             if (password) {
                 let securedPassword = await encryptPassword(password);
                 if (!securedPassword.success) {
@@ -186,13 +186,13 @@ export const userLogin = async (req: Request, res: Response) => {
                 }
                 createUser.password = securedPassword
             }
-    
+
             await Users.create(createUser);
 
             if (!accessToken2.success) {
                 return sendError(res, 500, `Error while generating access token: ${accessToken2.error}`, ERROR_CODES.TOKEN_GENERATION_FAILED);
             }
-    
+
             const cookieMaxAge = process.env.COOKIE_MAX_AGE ? parseInt(process.env.COOKIE_MAX_AGE) : 60 * 60 * 1000;
             res.cookie('accessToken', accessToken2.token, {
                 httpOnly: true,
@@ -200,7 +200,7 @@ export const userLogin = async (req: Request, res: Response) => {
                 maxAge: cookieMaxAge,
                 sameSite: 'strict'
             });
-    
+
             let response = { img, userId, email, firstName, lastName, phone, dob, balance: 0, accessToken: accessToken2?.token }
             return sendSuccess(res, 200, response);
         }
@@ -212,7 +212,7 @@ export const userLogin = async (req: Request, res: Response) => {
             }
         }
 
-        
+
         let refreshToken = await generateToken(user.userId, "refreshToken");
         let accessToken = await generateToken(user.userId, "access");
 
