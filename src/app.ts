@@ -9,7 +9,7 @@ import UsersRouter from "./routes/users.route";
 import PaymentsRouter from "./routes/payments.route";
 import RoomsRouter from "./routes/rooms.route";
 import accessControl from './middlewares/accessControl';
-import socketSetup from 'socket/main.socket';
+import socketSetup from 'socket';
 
 const PORT = process.env.PORT;
 const app = express();
