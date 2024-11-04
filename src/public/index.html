@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Room Demo</title>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        #status {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        #roomMembers {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Join or Create a Game Room</h1>
+    <input type="text" id="userId" placeholder="Enter your User ID" required>
+    <input type="text" id="roomId" placeholder="Enter Room ID" required>
+    <button id="joinRoomButton">Join Room</button>
+    <button id="createRoomButton">Create Room</button>
+
+    <div id="status"></div>
+    <h3>Room Members:</h3>
+    <ul id="roomMembers"></ul>
+
+    <script>
+        const socket = io(); // Connect to the server running on the same host
+
+        document.getElementById('joinRoomButton').addEventListener('click', () => {
+            const userId = document.getElementById('userId').value;
+            const roomId = document.getElementById('roomId').value;
+
+            // Emit request to join a room
+            socket.emit('JOIN_ROOM', { roomId, userId });
+        });
+
+        document.getElementById('createRoomButton').addEventListener('click', () => {
+            const userId = document.getElementById('userId').value;
+            const roomId = document.getElementById('roomId').value;
+
+            // Emit request to create a room
+            socket.emit('ROOM_CREATED', { roomId, userId });
+        });
+
+        // Listen for room joined event
+        socket.on('ROOM_JOINED', (data) => {
+            const { roomId, userId } = data;
+            document.getElementById('status').innerText = `User ${userId} joined room ${roomId}`;
+            updateRoomMembers(roomId);
+        });
+
+        // Listen for room creation event
+        socket.on('roomCreated', (data) => {
+            const { roomId, userIds } = data;
+            document.getElementById('status').innerText = `Room ${roomId} created. Users: ${userIds.join(', ')}`;
+            updateRoomMembers(roomId);
+        });
+
+        // Update room members (example implementation)
+        function updateRoomMembers(roomId) {
+            // Assume you have logic to get members from your server (this is a placeholder)
+            // Here, just updating the UI manually for demo purposes
+            const userId = document.getElementById('userId').value;
+            const roomMembersList = document.getElementById('roomMembers');
+            const li = document.createElement('li');
+            li.innerText = `${userId} in room ${roomId}`;
+            roomMembersList.appendChild(li);
+        }
+    </script>
+</body>
+</html>
