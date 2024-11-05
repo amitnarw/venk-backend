@@ -1,4 +1,5 @@
 export interface Room {
+    gameId: string;
     roomId: string;
     remainingSlots: number;
     userIds: string[];

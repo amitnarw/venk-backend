@@ -27,12 +27,20 @@
     <button id="joinRoomButton">Join Room</button>
     <button id="createRoomButton">Create Room</button>
 
+    <div id="allData"></div>
+
     <div id="status"></div>
     <h3>Room Members:</h3>
     <ul id="roomMembers"></ul>
 
     <script>
         const socket = io(); // Connect to the server running on the same host
+
+        socket.on('ROOMS_DATA', (data) => {
+            const { roomId, userId } = data;
+            document.getElementById('allData').innerText = `All rooms data = ${data}`;
+            // updateRoomMembers(roomId);
+        });
 
         document.getElementById('joinRoomButton').addEventListener('click', () => {
             const userId = document.getElementById('userId').value;
@@ -47,7 +55,7 @@
             const roomId = document.getElementById('roomId').value;
 
             // Emit request to create a room
-            socket.emit('ROOM_CREATED', { roomId, userId });
+            socket.emit('ROOM_CREATED', { gameId: "100", roomId, userId, totalSlots: 2 });
         });
 
         // Listen for room joined event

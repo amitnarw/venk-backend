@@ -5,7 +5,7 @@ import roomHandlers from "./handlers/room.handlers";
 const socketSetup = (io: Server) => {
     io.on("connection", (socket) => {
         console.log('user connected', socket.id);
-
+        
           roomHandlers(io, socket);
           gameHandlers(io, socket);
 
