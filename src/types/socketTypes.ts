@@ -6,3 +6,12 @@ export interface Room {
     scores: number[];
     joinedAt: Date[];
 }
+
+export interface SocketError extends Error {
+    data?: { 
+        statusCode: number; 
+        success: boolean; 
+        error: string; 
+        errorCode: string;
+    };
+}
