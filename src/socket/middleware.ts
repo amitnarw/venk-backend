@@ -8,16 +8,17 @@ export const validateSocket = async (socket: Socket, next: (err?: Error) => void
     const token = socket.handshake.headers.authorization?.split(" ")[1];
 
     if (token) {
-        let validateToken = await verifyToken(token, "access");
-        if (validateToken?.error) {
+        let validateToken: any = await verifyToken(token, "access");
+
+        if (!validateToken?.success) {
             const error: SocketError = new Error("Invalid token. Please log in again");
             error.data = { statusCode: 403, success: false, error: "Invalid token. Please log in again.", errorCode: ERROR_CODES.INVALID_TOKEN }
             next(error);
-        } else {
 
+        } else {
             let resp = await Users.findOne({
                 where: {
-                    userId: validateToken?.decoded
+                    userId: validateToken?.decoded?.userId
                 }
             });
             if (resp) {

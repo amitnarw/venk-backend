@@ -5,6 +5,20 @@ import { Room } from "../../types/socketTypes";
 const activeGames: string[] = [];
 const activeRooms: Room[] = [];
 
+const games = {
+    gameId1: ["roomId1", "roomId2"]
+}
+
+const rooms = {
+    roomId1: {
+        gameId: "11",
+        userIds: [],
+        remainingSlots: 2,
+        scores: [22],
+        joinedAt: []
+    }
+}
+
 const roomHandlers = (io: Server, socket: Socket) => {
     // Room Creation Handler
     console.log(1)
@@ -50,26 +64,41 @@ const roomHandlers = (io: Server, socket: Socket) => {
     //     }
     // });
 
+    socket.on("GET_AVAILABLE_ROOMS", ({ gameId, totalSlots }) => {
+        console.log(1)
+        if (activeGames.includes(gameId)) {
+            console.log(2)
+            if (activeRooms[activeGames.indexOf(gameId)].remainingSlots > 0) {
+                console.log(3)
 
-    const addNewRoom = (gameId: string, totalSlots: number, userId:string) => {
+            }
+        } else {
+            console.log(4)
+            addNewRoom(gameId, totalSlots, socket.data.user.userId);
+            socket.emit("GET_AVAILABLE_ROOMS", { statusCode: 200, data: activeRooms[activeGames.indexOf(gameId)], success: true });
+        }
+    })
+
+
+    const addNewRoom = (gameId: string, totalSlots: number, userId: string) => {
         activeGames.push(gameId);
-            activeRooms.push({
-                gameId,
-                roomId: `roomId-${uuid_v4()}`,
-                remainingSlots: totalSlots - 1,
-                userIds: [userId],
-                scores: [0],
-                joinedAt: [new Date()],
-            })
+        activeRooms.push({
+            gameId,
+            roomId: `roomId-${uuid_v4()}`,
+            remainingSlots: totalSlots - 1,
+            userIds: [userId],
+            scores: [0],
+            joinedAt: [new Date()],
+        })
     }
 
     socket.on("CHECK_ROOM", ({ gameId, totalSlots, userId }) => {
         if (activeGames.includes(gameId)) {
             if (activeRooms[activeGames.indexOf(gameId)].remainingSlots > 0) {
                 activeRooms[activeGames.indexOf(gameId)].remainingSlots - 1,
-                activeRooms[activeGames.indexOf(gameId)].userIds.push(userId),
-                activeRooms[activeGames.indexOf(gameId)].scores.push(0),
-                activeRooms[activeGames.indexOf(gameId)].joinedAt.push(new Date())
+                    activeRooms[activeGames.indexOf(gameId)].userIds.push(userId),
+                    activeRooms[activeGames.indexOf(gameId)].scores.push(0),
+                    activeRooms[activeGames.indexOf(gameId)].joinedAt.push(new Date())
             } else {
                 addNewRoom(gameId, totalSlots, userId);
             }
@@ -78,7 +107,7 @@ const roomHandlers = (io: Server, socket: Socket) => {
             addNewRoom(gameId, totalSlots, userId);
         }
 
-        
+
 
         socket.emit("ROOMS_DATA", [
             { gameId: 11 }

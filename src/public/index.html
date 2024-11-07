@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,15 +11,18 @@
             font-family: Arial, sans-serif;
             padding: 20px;
         }
+
         #status {
             margin-top: 20px;
             font-weight: bold;
         }
+
         #roomMembers {
             margin-top: 10px;
         }
     </style>
 </head>
+
 <body>
 
     <h1>Join or Create a Game Room</h1>
@@ -34,13 +38,19 @@
     <ul id="roomMembers"></ul>
 
     <script>
-        const socket = io(); // Connect to the server running on the same host
-
-        socket.on('ROOMS_DATA', (data) => {
-            const { roomId, userId } = data;
-            document.getElementById('allData').innerText = `All rooms data = ${data}`;
-            // updateRoomMembers(roomId);
+        const socket = io({
+            extraHeaders: {
+                Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJlYzcxMmQxOS0zMmJkLTRjYmYtODVkMy1mZWYzNjk1MmE2OWIiLCJpYXQiOjE3MzA5NzA1NTksImV4cCI6MTczMDk3NDE1OX0.X6YXvga5CKJiWPyElGqJeo9unQFOjpacLQ4xNNv88jg`
+            }
         });
+
+        socket.on("connect_error", (error) => {
+            console.error("Connection failed:", error.message);
+            alert(error);
+        });
+
+        socket.emit('GET_AVAILABLE_ROOMS', { gameId: "100", totalSlots: 2 });
+        socket.on('GET_AVAILABLE_ROOMS', (data) => console.log(data, "DATA"));
 
         document.getElementById('joinRoomButton').addEventListener('click', () => {
             const userId = document.getElementById('userId').value;
@@ -84,4 +94,5 @@
         }
     </script>
 </body>
+
 </html>

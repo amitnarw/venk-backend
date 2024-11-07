@@ -1,0 +1,3 @@
+const activeGames = {};
+const rooms = {};
+
