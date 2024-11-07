@@ -1,10 +1,19 @@
-export interface Room {
+export interface RoomDetails {
     gameId: string;
-    roomId: string;
     remainingSlots: number;
+    totalSlots: number;
     userIds: string[];
     scores: number[];
     joinedAt: Date[];
+}
+
+export interface RoomData {
+    [roomId: string]: RoomDetails;
+}
+
+
+export interface GameData {
+    [gameId: string]: string[];
 }
 
 export interface SocketError extends Error {
