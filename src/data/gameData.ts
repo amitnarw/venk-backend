@@ -1,5 +1,6 @@
 import { v4 as uuid_v4 } from 'uuid';
 import { GameData, RoomData } from "../types/socketTypes";
+import { Rooms } from '../db/models';
 
 const activeGames: string[] = [];
 const availableRooms: string[] = [];
@@ -33,6 +34,10 @@ export const checkIfRoomAvailable = (gameId: string) => {
     return roomId || null;
 }
 
+export const isUserInAnyRoom = (userId: string) => {
+    return Object.values(roomData).some(room => room.userIds.includes(userId));
+};
+
 export const getAllRoomsOfGame = (gameId: string) => {
     return gameData[gameId]
 }
@@ -49,15 +54,25 @@ export const remainingSlotsInRoom = (roomId: string) => {
     return roomData[roomId].remainingSlots;
 }
 
-export const updateAvailableRoom = (roomId: string) => {
-    roomData[roomId].remainingSlots += 1;
-    if (roomData[roomId].remainingSlots === roomData[roomId].totalSlots) {
+export const updateAvailableRoom = async (gameId: string, roomId: string, userId: string) => {
+    roomData[roomId].remainingSlots -= 1;
+    if (roomData[roomId].remainingSlots === 0) {
         const availableIndex = availableRooms.indexOf(roomId);
         if (availableIndex !== -1) {
             availableRooms.splice(availableIndex, 1);
         }
         if (!activeRooms.includes(roomId)) {
             activeRooms.push(roomId);
+            let saveData = await Rooms.create({
+                gameId,
+                roomId,
+                userIds: roomData[roomId].userIds,
+                scores: roomData[roomId].scores,
+                joinedAt: roomData[roomId].joinedAt,
+                disconnectedAt: roomData[roomId].disconnectedAt,
+                status: "active",
+                startTime: new Date()
+            });
         }
     }
     return true;
@@ -73,7 +88,8 @@ export const createNewAvailableRoom = (gameId: string, totalSlots: number, userI
         totalSlots,
         userIds: [userId],
         scores: [0],
-        joinedAt: [new Date()]
+        joinedAt: [new Date()],
+        disconnectedAt: [0]
     }
     roomData.roomId = newData;
     return newData;
@@ -81,7 +97,7 @@ export const createNewAvailableRoom = (gameId: string, totalSlots: number, userI
 
 export const createNewGame = (gameId: string, totalSlots: number, userId: string) => {
     const roomId = `roomId-${uuid_v4()}`;
-    activeGames.push(roomId);
+    activeGames.push(gameId);
     availableRooms.push(roomId);
     gameData.gameId = [roomId];
     let newData = {
@@ -90,8 +106,9 @@ export const createNewGame = (gameId: string, totalSlots: number, userId: string
         totalSlots,
         userIds: [userId],
         scores: [0],
-        joinedAt: [new Date()]
+        joinedAt: [new Date()],
+        disconnectedAt: [0]
     }
     roomData.roomId = newData;
-    return newData; 
+    return newData;
 }

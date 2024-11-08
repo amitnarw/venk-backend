@@ -2,7 +2,7 @@ import { Request, Response } from "express"
 import { v4 as uuid_v4 } from 'uuid';
 import { sendError, sendSuccess } from "../utils/handleResponse";
 import { ERROR_CODES } from "../utils/handleErrorCode";
-import { GamesActive, Rooms } from "db/models";
+import { Rooms } from "db/models";
 import { Op } from "sequelize";
 import sequelize from "db/dbConnect";
 
@@ -40,18 +40,18 @@ export const createRoom = async (req: Request, res: Response) => {
             return sendError(res, 400, 'Invalid status value. Allowed values are: waiting, active, finished', ERROR_CODES.INVALID_VALUE);
         }
 
-        const existingActiveRoom = await GamesActive.findOne({
-            where: {
-                userIds: {
-                    [Op.contains]: [userId]
-                }
-            },
-            transaction
-        });
-        if (existingActiveRoom) {
-            await transaction.rollback();
-            return sendError(res, 400, "User already has an active room", ERROR_CODES.USER_ALREADY_EXISTS);
-        }
+        // const existingActiveRoom = await GamesActive.findOne({
+        //     where: {
+        //         userIds: {
+        //             [Op.contains]: [userId]
+        //         }
+        //     },
+        //     transaction
+        // });
+        // if (existingActiveRoom) {
+        //     await transaction.rollback();
+        //     return sendError(res, 400, "User already has an active room", ERROR_CODES.USER_ALREADY_EXISTS);
+        // }
 
         const roomId = `roomId-${uuid_v4()}`;
         await Rooms.create({
@@ -60,13 +60,13 @@ export const createRoom = async (req: Request, res: Response) => {
             status
         }, { transaction });
 
-        await GamesActive.create({
-            roomId,
-            userIds: [userId],
-            scores: [0],
-            joinedAt: [new Date()],
-            disconnectedAt: [0]
-        }, { transaction });
+        // await GamesActive.create({
+        //     roomId,
+        //     userIds: [userId],
+        //     scores: [0],
+        //     joinedAt: [new Date()],
+        //     disconnectedAt: [0]
+        // }, { transaction });
 
         await transaction.commit();
         return sendSuccess(res, 200, roomId);

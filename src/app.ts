@@ -7,10 +7,11 @@ dotenv.config({ path: '.env' });
 import AuthRouter from "./routes/auth.route";
 import UsersRouter from "./routes/users.route";
 import PaymentsRouter from "./routes/payments.route";
+import GamesRouter from "./routes/games.route";
 import RoomsRouter from "./routes/rooms.route";
 import accessControl from './middlewares/accessControl';
 import socketSetup from './socket/index';
-import path from 'path'; // Import path module
+import path from 'path';
 
 const PORT = process.env.PORT;
 const app = express();
@@ -28,10 +29,11 @@ var corsOptions = {
 
 app.use(cors(corsOptions));
 
-app.use('/auth', AuthRouter);
-app.use('/users', accessControl, UsersRouter);
-app.use('/payment', accessControl, PaymentsRouter);
-app.use('/room', accessControl, RoomsRouter);
+app.use('/api/v1/auth', AuthRouter);
+app.use('/api/v1/users', accessControl, UsersRouter);
+app.use('/api/v1/payment', accessControl, PaymentsRouter);
+app.use('/api/v1/games', accessControl, GamesRouter);
+app.use('/api/v1/room', accessControl, RoomsRouter);
 
 app.get('/index', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));

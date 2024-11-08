@@ -7,40 +7,40 @@
     <title>WebSocket Room Demo</title>
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-        }
 
-        #status {
-            margin-top: 20px;
-            font-weight: bold;
-        }
-
-        #roomMembers {
-            margin-top: 10px;
-        }
     </style>
 </head>
 
 <body>
 
-    <h1>Join or Create a Game Room</h1>
-    <input type="text" id="userId" placeholder="Enter your User ID" required>
-    <input type="text" id="roomId" placeholder="Enter Room ID" required>
-    <button id="joinRoomButton">Join Room</button>
-    <button id="createRoomButton">Create Room</button>
+    <div>
+        <h1>Games list</h1>
+        <button onclick=gameList()>Get data</button>
+    </div>
+    <ul id="gamesList"></ul>
 
-    <div id="allData"></div>
+    <h2>Rooms list</h2>
+    <ul id="roomsList"></ul>
 
-    <div id="status"></div>
-    <h3>Room Members:</h3>
-    <ul id="roomMembers"></ul>
+    <h3>Room details:</h3>
+    <ul id="roomDetails"></ul>
 
     <script>
+
+        const gameList = async () => {
+            let res = await fetch("/api/v1/games", {
+                headers: {
+                    "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJmNTJjZTUzNC1jNDg2LTRiMzEtYTY5OS1iOWFjMWI3ZDI1Y2IiLCJpYXQiOjE3MzEwNTA2MjAsImV4cCI6MTczMTA1NDIyMH0.JEh6qNg9simlWZdyuFPEHT4Kp3IEnj3XnrR11I8EQ98"
+                }
+            });
+            console.log(res, "RES");
+            let data = await res.json();
+            console.log(data, "DATA")
+        }
+
         const socket = io({
             extraHeaders: {
-                Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI1N2FiOWNhMi00OTNhLTQyZmUtODYxYy1kZTRhYThiY2JjY2EiLCJpYXQiOjE3MzA5ODk0NTEsImV4cCI6MTczMDk5MzA1MX0.tNJK33c1bCNrqiCcXIm3l2HMkK9sh8GJI5Ee2Tcceko`
+                Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxYTg5NjkyYy01NjFhLTRjOTAtYjczMC0xZjM0MjkzMWM0MzAiLCJpYXQiOjE3MzEwMzcxODYsImV4cCI6MTczMTA0MDc4Nn0.Q_75DIUBR_bwP8dUM8jJMwYWbfk5F0jR3VHcgkJbQpw`
             }
         });
 

@@ -3,6 +3,7 @@ import { Server, Socket } from "socket.io";
 
 const roomHandlers = (io: Server, socket: Socket) => {
     console.log(1)
+
     socket.on("GET_AVAILABLE_ROOMS", ({ gameId, totalSlots }) => {
         console.log(1)
         let checkGame = checkIfGameActive(gameId);
@@ -11,7 +12,7 @@ const roomHandlers = (io: Server, socket: Socket) => {
             let checkRoom = checkIfRoomAvailable(gameId);
             if (checkRoom) {
                 console.log(3)
-                let updateRoom = updateAvailableRoom(checkRoom);
+                let updateRoom = updateAvailableRoom(gameId, checkRoom, socket.data.user.userId);
                 socket.emit("GET_AVAILABLE_ROOMS", { statusCode: 200, data: checkRoom, success: true });
             } else {
                 console.log(4)

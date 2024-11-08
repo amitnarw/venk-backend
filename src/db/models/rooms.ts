@@ -6,21 +6,46 @@ const Rooms = sequelize.define('rooms', {
   id: {
     allowNull: false,
     autoIncrement: true,
+    unique: true,
     primaryKey: true,
     type: DataTypes.INTEGER
+  },
+  gameId: {
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   roomId: {
     type: DataTypes.STRING,
     allowNull: false,
     unique: true
   },
-  gameId: {
-    type: DataTypes.STRING,
+  userIds: {
+    type: DataTypes.ARRAY(DataTypes.STRING),
+    allowNull: false,
+  },
+  scores: {
+    type: DataTypes.ARRAY(DataTypes.INTEGER),
+    allowNull: false,
+  },
+  joinedAt: {
+    type: DataTypes.ARRAY(DataTypes.DATE),
+    allowNull: false,
+  },
+  disconnectedAt: {
+    type: DataTypes.ARRAY(DataTypes.DATE),
     allowNull: false,
   },
   status: {
-    type: DataTypes.ENUM("waiting", "active", "finished"),
+    type: DataTypes.ENUM("active", "finished"),
     allowNull: false,
+  },
+  startTime: {
+    type: DataTypes.DATE,
+    allowNull: false,
+  },
+  endTime: {
+    type: DataTypes.DATE,
+    allowNull: true,
   },
 }, {
   modelName: 'rooms',

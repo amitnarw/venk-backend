@@ -5,6 +5,7 @@ export interface RoomDetails {
     userIds: string[];
     scores: number[];
     joinedAt: Date[];
+    disconnectedAt: Date|Number[];
 }
 
 export interface RoomData {
@@ -17,10 +18,10 @@ export interface GameData {
 }
 
 export interface SocketError extends Error {
-    data?: { 
-        statusCode: number; 
-        success: boolean; 
-        error: string; 
+    data?: {
+        statusCode: number;
+        success: boolean;
+        error: string;
         errorCode: string;
     };
 }

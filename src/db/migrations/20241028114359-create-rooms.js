@@ -7,20 +7,45 @@ module.exports = {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
+        unique: true,
         type: Sequelize.INTEGER
+      },
+      gameId: {
+        type: Sequelize.STRING,
+        allowNull: false,
       },
       roomId: {
         type: Sequelize.STRING,
         allowNull: false,
         unique: true
       },
-      gameId: {
-        type: Sequelize.STRING,
+      userIds: {
+        type: Sequelize.ARRAY(Sequelize.STRING),
+        allowNull: false,
+      },
+      scores: {
+        type: Sequelize.ARRAY(Sequelize.INTEGER),
+        allowNull: false,
+      },
+      joinedAt: {
+        type: Sequelize.ARRAY(Sequelize.DATE),
+        allowNull: false,
+      },
+      disconnectedAt: {
+        type: Sequelize.ARRAY(Sequelize.DATE),
         allowNull: false,
       },
       status: {
-        type: Sequelize.ENUM("waiting", "active", "finished"),
+        type: Sequelize.ENUM("active", "finished"),
         allowNull: false,
+      },
+      startTime: {
+        type: Sequelize.DATE,
+        allowNull: false,
+      },
+      endTime: {
+        type: Sequelize.DATE,
+        allowNull: true,
       },
       createdAt: {
         allowNull: false,

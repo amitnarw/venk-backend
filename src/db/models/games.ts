@@ -15,6 +15,10 @@ const Games = sequelize.define('games', {
     unique: true,
     allowNull: false,
   },
+  image: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   name: {
     type: DataTypes.STRING,
     allowNull: false,

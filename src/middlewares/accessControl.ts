@@ -3,6 +3,7 @@ import { verifyToken } from "../utils/handleToken";
 import { ERROR_CODES } from "../utils/handleErrorCode";
 import { sendError } from "../utils/handleResponse";
 import { AuthenticatedRequest } from "types/common";
+import { Users } from "../db/models";
 
 const accessControl = async (
   req: AuthenticatedRequest,
@@ -14,6 +15,7 @@ const accessControl = async (
     return sendError(res, 401, "Authentication required. Please sign in.", ERROR_CODES.ACCESS_TOKEN_MISSING);
   }
   const { success, error, decoded }: any = await verifyToken(authToken, "access");
+
   if (!success) {
     switch (error.name) {
       case "JsonWebTokenError":
@@ -24,8 +26,18 @@ const accessControl = async (
         return sendError(res, 403, "Invalid token. Please log in again.", ERROR_CODES.INVALID_TOKEN);
     }
   }
-  req.userId = decoded?.userId;
-  next();
+  let checkUser = await Users.findOne({
+    where: {
+      userId: decoded?.userId
+    }
+  });
+
+  if (checkUser) {
+    req.userId = decoded?.userId;
+    next();
+  } else {
+    return sendError(res, 404, "User not found", ERROR_CODES.USER_NOT_FOUND);
+  }
 };
 
 export default accessControl;
