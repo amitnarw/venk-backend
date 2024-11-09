@@ -7,11 +7,11 @@ const Rooms = sequelize.define('rooms', {
     allowNull: false,
     autoIncrement: true,
     unique: true,
-    primaryKey: true,
     type: DataTypes.INTEGER
   },
   gameId: {
     type: DataTypes.STRING,
+    primaryKey: true,
     allowNull: false,
   },
   roomId: {
@@ -45,6 +45,14 @@ const Rooms = sequelize.define('rooms', {
   },
   endTime: {
     type: DataTypes.DATE,
+    allowNull: true,
+  },
+  aiPlay: {
+    type: DataTypes.BOOLEAN,
+    allowNull: true,
+  },
+  winnerUserId: {
+    type: DataTypes.STRING,
     allowNull: true,
   },
 }, {

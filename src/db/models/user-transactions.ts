@@ -6,11 +6,11 @@ const UserTransactions = sequelize.define('user-transactions', {
   id: {
     allowNull: false,
     autoIncrement: true,
-    primaryKey: true,
     type: DataTypes.INTEGER
   },
   transactionId: {
     type: DataTypes.STRING,
+    primaryKey: true,
     unique: true,
     allowNull: false,
   },

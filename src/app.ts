@@ -33,7 +33,7 @@ app.use('/api/v1/auth', AuthRouter);
 app.use('/api/v1/users', accessControl, UsersRouter);
 app.use('/api/v1/payment', accessControl, PaymentsRouter);
 app.use('/api/v1/games', accessControl, GamesRouter);
-app.use('/api/v1/room', accessControl, RoomsRouter);
+app.use('/api/v1/rooms', accessControl, RoomsRouter);
 
 app.get('/index', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));

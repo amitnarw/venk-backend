@@ -6,12 +6,12 @@ const Games = sequelize.define('games', {
   id: {
     allowNull: false,
     autoIncrement: true,
-    primaryKey: true,
     unique: true,
     type: DataTypes.INTEGER
   },
   gameId: {
     type: DataTypes.STRING,
+    primaryKey: true,
     unique: true,
     allowNull: false,
   },
@@ -28,10 +28,10 @@ const Games = sequelize.define('games', {
     allowNull: true,
   },
   duration: {
-    type: DataTypes.STRING,
+    type: DataTypes.INTEGER,
     allowNull: false,
   },
-  maxPlayers: {
+  totalSlots: {
     type: DataTypes.INTEGER,
     allowNull: false,
   },

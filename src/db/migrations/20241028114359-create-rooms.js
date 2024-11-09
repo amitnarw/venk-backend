@@ -6,12 +6,12 @@ module.exports = {
       id: {
         allowNull: false,
         autoIncrement: true,
-        primaryKey: true,
         unique: true,
         type: Sequelize.INTEGER
       },
       gameId: {
         type: Sequelize.STRING,
+        primaryKey: true,
         allowNull: false,
       },
       roomId: {
@@ -45,6 +45,14 @@ module.exports = {
       },
       endTime: {
         type: Sequelize.DATE,
+        allowNull: true,
+      },
+      aiPlay: {
+        type: Sequelize.BOOLEAN,
+        allowNull: true,
+      },
+      winnerUserId: {
+        type: Sequelize.STRING,
         allowNull: true,
       },
       createdAt: {

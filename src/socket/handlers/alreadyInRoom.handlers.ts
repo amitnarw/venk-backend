@@ -5,7 +5,7 @@ const alreadyInRoomHandler = (io: Server, socket: Socket) => {
 
     socket.on("IS_USER_ALREADY_PLAYING", () => {
         let data = isUserInAnyRoom(socket.data.user.userId);
-        console.log(data, "IS_USER_ALREADY_PLAYING");
+        socket.emit("IS_USER_ALREADY_PLAYING", data);
     })
 }
 

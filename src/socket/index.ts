@@ -6,10 +6,10 @@ import alreadyInRoomHandler from "./handlers/alreadyInRoom.handlers";
 
 const socketSetup = (io: Server) => {
     io.use(validateSocket);
-    io.on("connection", (socket) => {
+    io.on("connection", async (socket) => {
         console.log('user connected', socket.data.user.userId);
 
-        alreadyInRoomHandler(io, socket);
+        // await alreadyInRoomHandler(io, socket);
         roomHandlers(io, socket);
         gameHandlers(io, socket);
 

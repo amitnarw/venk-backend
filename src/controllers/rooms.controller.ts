@@ -2,9 +2,10 @@ import { Request, Response } from "express"
 import { v4 as uuid_v4 } from 'uuid';
 import { sendError, sendSuccess } from "../utils/handleResponse";
 import { ERROR_CODES } from "../utils/handleErrorCode";
-import { Rooms } from "db/models";
+import { Games, Rooms } from "../db/models";
 import { Op } from "sequelize";
-import sequelize from "db/dbConnect";
+import sequelize from "../db/dbConnect";
+import { AuthenticatedRequest } from "../types/common";
 
 export const getAllRooms = async (req: Request, res: Response) => {
     try {
@@ -73,5 +74,29 @@ export const createRoom = async (req: Request, res: Response) => {
     } catch (err) {
         await transaction.rollback();
         return sendError(res, 500, `Error while getting all games data: ${err}`, ERROR_CODES.SERVER_ERROR);
+    }
+}
+
+export const alreadyPlaying = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        let userId = req.userId;
+        if (!userId || userId === "") {
+            return sendError(res, 400, `Please provide userId`, ERROR_CODES.MISSING_FIELD);
+        }
+        let resp = await Rooms.findOne({
+            where: {
+                status: 'active',
+                userIds: {
+                    [Op.contains]: [userId]
+                }
+            },
+            include: {
+                model: Games
+            },
+            logging: console.log 
+        });
+        return sendSuccess(res, 200, resp);
+    } catch (err) {
+        return sendError(res, 500, `Error while checking if already playing: ${err}`, ERROR_CODES.SERVER_ERROR);
     }
 }

@@ -6,12 +6,12 @@ module.exports = {
       id: {
         allowNull: false,
         autoIncrement: true,
-        primaryKey: true,
         unique: true,
         type: Sequelize.INTEGER
       },
       gameId: {
         type: Sequelize.STRING,
+        primaryKey: true,
         unique: true,
         allowNull: false,
       },
@@ -28,10 +28,10 @@ module.exports = {
         allowNull: true,
       },
       duration: {
-        type: Sequelize.STRING,
+        type: Sequelize.INTEGER,
         allowNull: false,
       },
-      maxPlayers: {
+      totalSlots: {
         type: Sequelize.INTEGER,
         allowNull: false,
       },

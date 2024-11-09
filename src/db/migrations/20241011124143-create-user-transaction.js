@@ -6,12 +6,12 @@ module.exports = {
       id: {
         allowNull: false,
         autoIncrement: true,
-        primaryKey: true,
         unique: true,
         type: Sequelize.INTEGER
       },
       transactionId: {
         type: Sequelize.STRING,
+        primaryKey: true,
         unique: true,
         allowNull: false,
       },

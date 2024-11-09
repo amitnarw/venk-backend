@@ -8,11 +8,11 @@ const Users = sequelize.define<Model<UserAttributes>>('users', {
         type: DataTypes.INTEGER,
         allowNull: false,
         autoIncrement: true,
-        primaryKey: true,
         unique: true
     },
     userId: {
         type: DataTypes.STRING,
+        primaryKey: true,
         allowNull: false
     },
     img: {

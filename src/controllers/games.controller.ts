@@ -32,9 +32,9 @@ export const getSingleGame = async (req: Request, res: Response) => {
 
 export const createGame = async (req: Request, res: Response) => {
     try {
-        let { image, name, description, duration, maxPlayers } = await req.body;
-        if (!name || name === "" || !description || description === "" || !duration || duration === "" || !maxPlayers || maxPlayers === "") {
-            return sendError(res, 400, `Please provide name, description, duration and maxPlayers`, ERROR_CODES.MISSING_FIELD);
+        let { image, name, description, duration, totalSlots } = await req.body;
+        if (!name || name === "" || !description || description === "" || !duration || duration === "" || !totalSlots || totalSlots === "") {
+            return sendError(res, 400, `Please provide name, description, duration and totalSlots`, ERROR_CODES.MISSING_FIELD);
         }
         const gameId = `gameId-${uuid_v4()}`;
         await Games.create({
@@ -43,7 +43,7 @@ export const createGame = async (req: Request, res: Response) => {
             name,
             description,
             duration,
-            maxPlayers
+            totalSlots
         });
         return sendSuccess(res, 200, gameId);
     } catch (err) {
