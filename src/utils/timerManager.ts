@@ -2,7 +2,7 @@ import { TimersAttributes, TimerType } from "types/timerTypes";
 
 const timers: Record<string, TimersAttributes> = {};
 
-export const startTimer = (roomId: string, type: TimerType, duration: number, callback: () => void) => {
+export const startTimer = (roomId: string, step: number, type: TimerType, duration: number, callback: () => void) => {
     clearTimer(roomId);
     
     const timerId = setTimeout(()=>{
@@ -13,6 +13,7 @@ export const startTimer = (roomId: string, type: TimerType, duration: number, ca
     timers[roomId] = {
         timerId,
         roomId,
+        step,
         type,
         startTime: Date.now(),
         duration

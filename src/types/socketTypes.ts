@@ -7,7 +7,7 @@ export interface RoomDetails {
     userIds: string[];
     scores: number[];
     joinedAt: Date[];
-    disconnectedAt: (Date|Number)[];
+    disconnectedAt: (Date | Number)[];
 }
 
 export interface RoomData {
@@ -32,11 +32,15 @@ export interface createNewGameAttributes {
     gameId: string;
     totalSlots: number;
     userId: string;
-    duration: number
+    duration: number;
+    io: any;
+    socket: any;
 }
 
 export interface updateAvailableRoomAttributes {
     gameId: string,
     roomId: string,
-    userId: string
+    userId: string,
+    io: any;
+    socket: any;
 }

@@ -9,7 +9,7 @@ const socketSetup = (io: Server) => {
     io.on("connection", async (socket) => {
         console.log('user connected', socket.data.user.userId);
 
-        // await alreadyInRoomHandler(io, socket);
+        await alreadyInRoomHandler(io, socket);
         roomHandlers(io, socket);
         gameHandlers(io, socket);
 

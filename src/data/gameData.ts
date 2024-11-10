@@ -1,7 +1,8 @@
 import { v4 as uuid_v4 } from 'uuid';
 import { createNewGameAttributes, GameData, RoomData, updateAvailableRoomAttributes } from "../types/socketTypes";
 import { Rooms } from '../db/models';
-import { clearTimer, startTimer } from '../utils/timerManager';
+import { checkTimer, clearTimer, startTimer } from '../utils/timerManager';
+import { Socket } from 'socket.io';
 
 let activeGames: string[] = [];
 let availableRooms: string[] = [];
@@ -72,60 +73,28 @@ export const remainingSlotsInRoom = (roomId: string) => {
     return roomData[roomId].remainingSlots;
 }
 
-export const updateAvailableRoom = async ({gameId, roomId, userId}: updateAvailableRoomAttributes) => {
+export const updateScore = ({ io, socket, roomId, userId, score }: { io: any, socket: any, roomId: string, userId: string, score: number }) => {
+    let index = roomData[roomId].userIds.indexOf(userId);
+    roomData[roomId].scores[index] = score;
+    emitStatus({ io, socket, roomId, message: "Score updated", duration: roomData[roomId]?.duration, step: 2 });
+}
+
+export const updateAvailableRoom = ({ gameId, roomId, userId, io, socket }: updateAvailableRoomAttributes) => {
     roomData[roomId].remainingSlots -= 1;
     roomData[roomId].userIds.push(userId);
     roomData[roomId].scores.push(0);
     roomData[roomId].joinedAt.push(new Date());
     roomData[roomId].disconnectedAt.push(0);
     if (roomData[roomId].remainingSlots === 0) {
-        const availableIndex = availableRooms.indexOf(roomId);
-        if (availableIndex !== -1) {
-            availableRooms.splice(availableIndex, 1);
-        }
-        if (!activeRooms.includes(roomId)) {
-            activeRooms.push(roomId);
-
-        }
-    }
-    await Rooms.create({
-        gameId,
-        roomId,
-        userIds: roomData[roomId]?.userIds,
-        scores: roomData[roomId]?.scores,
-        joinedAt: roomData[roomId]?.joinedAt,
-        disconnectedAt: roomData[roomId]?.disconnectedAt,
-        status: "active",
-        startTime: new Date(),
-        aiPlay: false
-    });
-    clearTimer(roomId);
-    startTimer(roomId, 'gameComplete', roomData[roomId]?.duration, async () => {
-        console.log(`${roomData[roomId]?.duration} timer finished, game over`);
-        await Rooms.update({
-            userIds: roomData[roomId]?.userIds,
-            scores: roomData[roomId]?.scores,
-            joinedAt: roomData[roomId]?.joinedAt,
-            disconnectedAt: roomData[roomId]?.disconnectedAt,
-            status: "finished",
-            endTime: Date.now()
-        }, {
-            where: {
-                roomId,
-                status: "active"
-            }
-        });
-        delete roomData[roomId];
-        activeRooms = activeRooms.filter((item) => item !== roomId);
-        availableRooms = availableRooms.filter((item) => item !== roomId);
-        gameData[gameId] = gameData[gameId]?.filter((item) => item !== roomId);
-
+        // fromAvailableToActive(roomId);
         clearTimer(roomId);
-    })
-    return roomData[roomId];
+        commonProcessStartGame({ roomId, gameId, userId, io, socket });
+    } else {
+        emitStatus({ io, socket, roomId, message: `New player joined, waiting for ${roomData[roomId].remainingSlots} players`, duration: 20000, step: 1 });
+    }
 }
 
-export const createNewAvailableRoom = ({ gameId, totalSlots, userId, duration }: createNewGameAttributes) => {
+export const createNewAvailableRoom = ({ gameId, totalSlots, userId, duration, io, socket }: createNewGameAttributes) => {
     const roomId = `roomId-${uuid_v4()}`;
     availableRooms.push(roomId);
     gameData[gameId].push(roomId);
@@ -140,48 +109,11 @@ export const createNewAvailableRoom = ({ gameId, totalSlots, userId, duration }:
         joinedAt: [new Date()],
         disconnectedAt: [0]
     }
-    roomData.roomId = newData;
-    startTimer(roomId, 'timeout', 20000, async () => {
-        console.log('20-second timer finished, AI player joining...');
-        await Rooms.create({
-            gameId,
-            roomId,
-            userIds: [userId],
-            scores: [0],
-            joinedAt: [new Date()],
-            disconnectedAt: [0],
-            status: "active",
-            startTime: new Date(),
-            aiPlay: true
-        });
-        clearTimer(roomId);
-        startTimer(roomId, 'gameComplete', roomData[roomId]?.duration, async () => {
-            console.log(`${roomData[roomId]?.duration} timer finished, game over`);
-            await Rooms.update({
-                userIds: roomData[roomId]?.userIds,
-                scores: roomData[roomId]?.scores,
-                joinedAt: roomData[roomId]?.joinedAt,
-                disconnectedAt: roomData[roomId]?.disconnectedAt,
-                status: "finished",
-                endTime: Date.now()
-            }, {
-                where: {
-                    roomId,
-                    status: "active"
-                }
-            });
-            delete roomData[roomId];
-            activeRooms = activeRooms.filter((item) => item !== roomId);
-            availableRooms = availableRooms.filter((item) => item !== roomId);
-            gameData[gameId] = gameData[gameId]?.filter((item) => item !== roomId);
-
-            clearTimer(roomId);
-        })
-    });
-    return newData;
+    roomData[roomId] = newData;
+    commonProcessWaiting({ roomId, gameId, userId, io, socket });
 }
 
-export const createNewGame = ({ gameId, totalSlots, userId, duration }: createNewGameAttributes) => {
+export const createNewGame = ({ gameId, totalSlots, userId, duration, io, socket }: createNewGameAttributes) => {
     const roomId = `roomId-${uuid_v4()}`;
     activeGames.push(gameId);
     availableRooms.push(roomId);
@@ -198,44 +130,74 @@ export const createNewGame = ({ gameId, totalSlots, userId, duration }: createNe
         disconnectedAt: [0]
     }
     roomData[roomId] = newData;
-
-    startTimer(roomId, 'timeout', 20000, async () => {
-        console.log('20-second timer finished, AI player joining...');
-        await Rooms.create({
-            gameId,
-            roomId,
-            userIds: [userId],
-            scores: [0],
-            joinedAt: [new Date()],
-            disconnectedAt: [0],
-            status: "active",
-            startTime: new Date(),
-            aiPlay: true
-        });
-        clearTimer(roomId);
-        startTimer(roomId, 'gameComplete', roomData[roomId]?.duration, async () => {
-            console.log(`${roomData[roomId]?.duration} timer finished, game over`);
-            await Rooms.update({
-                userIds: roomData[roomId]?.userIds,
-                scores: roomData[roomId]?.scores,
-                joinedAt: roomData[roomId]?.joinedAt,
-                disconnectedAt: roomData[roomId]?.disconnectedAt,
-                status: "finished",
-                endTime: Date.now()
-            }, {
-                where: {
-                    roomId,
-                    status: "active"
-                }
-            });
-            delete roomData[roomId];
-            activeRooms = activeRooms.filter((item) => item !== roomId);
-            availableRooms = availableRooms.filter((item) => item !== roomId);
-            gameData[gameId] = gameData[gameId]?.filter((item) => item !== roomId);
-
-            clearTimer(roomId);
-        })
-    });
-    return newData;
+    commonProcessWaiting({ roomId, gameId, userId, io, socket });
 }
 
+const commonProcessWaiting = ({ roomId, gameId, userId, io, socket }: { roomId: string, gameId: string, userId: string, io: any, socket: any }) => {
+
+    emitStatus({ io, socket, roomId, message: `Room created, waiting for ${roomData[roomId].remainingSlots} players`, duration: 20000, step: 1 });
+    startTimer(roomId, 1, 'timeout', 20000, async () => {
+        commonProcessStartGame({ roomId, gameId, userId, io, socket });
+    });
+}
+
+
+const commonProcessStartGame = async ({ roomId, gameId, userId, io, socket }: { roomId: string, gameId: string, userId: string, io: any, socket: any }) => {
+    fromAvailableToActive(roomId);
+    emitStatus({ io, socket, roomId, message: "Game started", duration: roomData[roomId]?.duration, step: 2 });
+    await Rooms.create({
+        gameId,
+        roomId,
+        userIds: roomData[roomId]?.userIds,
+        scores: roomData[roomId]?.scores,
+        joinedAt: roomData[roomId]?.joinedAt,
+        disconnectedAt: roomData[roomId]?.disconnectedAt,
+        status: "active",
+        startTime: new Date(),
+        aiPlay: roomData[roomId]?.userIds.length === 1 ? true : false
+    });
+
+    clearTimer(roomId);
+
+    startTimer(roomId, 2, 'gameComplete', roomData[roomId]?.duration, async () => {
+        emitStatus({ io, socket, roomId, message: "Game over", duration: 0, step: 3 });
+        await Rooms.update({
+            // userIds: roomData[roomId]?.userIds,
+            scores: roomData[roomId]?.scores,
+            // joinedAt: roomData[roomId]?.joinedAt,
+            disconnectedAt: roomData[roomId]?.disconnectedAt,
+            status: "finished",
+            endTime: Date.now()
+        }, {
+            where: {
+                roomId,
+                status: "active"
+            }
+        });
+        clearTimer(roomId);
+        delete roomData[roomId];
+        activeRooms = activeRooms.filter((item) => item !== roomId);
+        availableRooms = availableRooms.filter((item) => item !== roomId);
+        gameData[gameId] = gameData[gameId]?.filter((item) => item !== roomId);
+    })
+}
+
+const emitStatus = ({ io, socket, roomId, message, duration, step }: { io: any, socket: any, roomId: string, message: string, duration: number, step: number }) => {
+    socket.join(roomId);
+    io.to(roomId).emit("GET_AVAILABLE_ROOMS", { statusCode: 200, data: roomData[roomId], status: { message, duration, step }, success: true })
+}
+
+const fromAvailableToActive = (roomId: string) => {
+    const availableIndex = availableRooms.indexOf(roomId);
+    if (availableIndex !== -1) {
+        availableRooms.splice(availableIndex, 1);
+    }
+    if (!activeRooms.includes(roomId)) {
+        activeRooms.push(roomId);
+    }
+}
+
+export const rejoinGame = ({ io, socket, roomId }: { io: any, socket: Socket, roomId: string }) => {
+    let timerData = checkTimer(roomId);
+    emitStatus({ io, socket, roomId, message: "Player rejoined", duration: roomData[roomId]?.duration, step: timerData.step });
+}
