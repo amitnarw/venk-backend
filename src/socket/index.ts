@@ -3,11 +3,13 @@ import gameHandlers from "./handlers/game.handlers";
 import roomHandlers from "./handlers/room.handlers";
 import { validateSocket } from "./middleware";
 import alreadyInRoomHandler from "./handlers/alreadyInRoom.handlers";
+import { addConnctedUserInList, removeDisconnectUserBeforeStart } from "../data/gameData";
 
 const socketSetup = (io: Server) => {
     io.use(validateSocket);
     io.on("connection", async (socket) => {
         console.log('user connected', socket.data.user.userId);
+        addConnctedUserInList(socket.data.user.userId);
 
         await alreadyInRoomHandler(io, socket);
         roomHandlers(io, socket);
@@ -15,6 +17,7 @@ const socketSetup = (io: Server) => {
 
         socket.on("disconnect", () => {
             console.log("User disconnect", socket.id);
+            removeDisconnectUserBeforeStart({io, socket, userId: socket.data.user.userId});
         })
     })
 }

@@ -8,6 +8,8 @@ let activeGames: string[] = [];
 let availableRooms: string[] = [];
 let activeRooms: string[] = [];
 
+let connectedUserIds: string[] = []
+
 let gameData: GameData = {}
 let roomData: RoomData = {}
 
@@ -84,7 +86,7 @@ export const updateAvailableRoom = ({ gameId, roomId, userId, io, socket }: upda
     roomData[roomId].userIds.push(userId);
     roomData[roomId].scores.push(0);
     roomData[roomId].joinedAt.push(new Date());
-    roomData[roomId].disconnectedAt.push(0);
+    roomData[roomId].disconnectedAt.push(null);
     if (roomData[roomId].remainingSlots === 0) {
         // fromAvailableToActive(roomId);
         clearTimer(roomId);
@@ -107,7 +109,7 @@ export const createNewAvailableRoom = ({ gameId, totalSlots, userId, duration, i
         userIds: [userId],
         scores: [0],
         joinedAt: [new Date()],
-        disconnectedAt: [0]
+        disconnectedAt: [null]
     }
     roomData[roomId] = newData;
     commonProcessWaiting({ roomId, gameId, userId, io, socket });
@@ -127,7 +129,7 @@ export const createNewGame = ({ gameId, totalSlots, userId, duration, io, socket
         userIds: [userId],
         scores: [0],
         joinedAt: [new Date()],
-        disconnectedAt: [0]
+        disconnectedAt: [null]
     }
     roomData[roomId] = newData;
     commonProcessWaiting({ roomId, gameId, userId, io, socket });
@@ -143,43 +145,65 @@ const commonProcessWaiting = ({ roomId, gameId, userId, io, socket }: { roomId: 
 
 
 const commonProcessStartGame = async ({ roomId, gameId, userId, io, socket }: { roomId: string, gameId: string, userId: string, io: any, socket: any }) => {
-    fromAvailableToActive(roomId);
-    emitStatus({ io, socket, roomId, message: "Game started", duration: roomData[roomId]?.duration, step: 2 });
-    await Rooms.create({
-        gameId,
-        roomId,
-        userIds: roomData[roomId]?.userIds,
-        scores: roomData[roomId]?.scores,
-        joinedAt: roomData[roomId]?.joinedAt,
-        disconnectedAt: roomData[roomId]?.disconnectedAt,
-        status: "active",
-        startTime: new Date(),
-        aiPlay: roomData[roomId]?.userIds.length === 1 ? true : false
-    });
 
-    clearTimer(roomId);
+    for (const roomId in roomData) {
+        if (roomData.hasOwnProperty(roomId)) {
+            const room = roomData[roomId];
+            const filteredUserIds = room.userIds.filter(userId => connectedUserIds.includes(userId));
+            room.userIds = filteredUserIds;
+            room.scores = room.scores.filter((_, index) => filteredUserIds.includes(room.userIds[index]));
+            room.joinedAt = room.joinedAt.filter((_, index) => filteredUserIds.includes(room.userIds[index]));
+            room.disconnectedAt = room.disconnectedAt.filter((_, index) => filteredUserIds.includes(room.userIds[index]));
+        }
+    }
 
-    startTimer(roomId, 2, 'gameComplete', roomData[roomId]?.duration, async () => {
-        emitStatus({ io, socket, roomId, message: "Game over", duration: 0, step: 3 });
-        await Rooms.update({
-            // userIds: roomData[roomId]?.userIds,
+    if (roomData[roomId]?.userIds.length > 0) {
+        fromAvailableToActive(roomId);
+        emitStatus({ io, socket, roomId, message: "Game started", duration: roomData[roomId]?.duration, step: 2 });
+        await Rooms.create({
+            gameId,
+            roomId,
+            userIds: roomData[roomId]?.userIds,
             scores: roomData[roomId]?.scores,
-            // joinedAt: roomData[roomId]?.joinedAt,
+            joinedAt: roomData[roomId]?.joinedAt,
             disconnectedAt: roomData[roomId]?.disconnectedAt,
-            status: "finished",
-            endTime: Date.now()
-        }, {
-            where: {
-                roomId,
-                status: "active"
-            }
+            status: "active",
+            startTime: new Date(),
+            aiPlay: roomData[roomId]?.userIds.length === 1 ? true : false
         });
+
+        clearTimer(roomId);
+
+        startTimer(roomId, 2, 'gameComplete', roomData[roomId]?.duration, async () => {
+            emitStatus({ io, socket, roomId, message: "Game over", duration: 0, step: 3 });
+            await Rooms.update({
+                // userIds: roomData[roomId]?.userIds,
+                scores: roomData[roomId]?.scores,
+                // joinedAt: roomData[roomId]?.joinedAt,
+                disconnectedAt: roomData[roomId]?.disconnectedAt,
+                status: "finished",
+                endTime: Date.now()
+            }, {
+                where: {
+                    roomId,
+                    status: "active"
+                }
+            });
+            clearTimer(roomId);
+            delete roomData[roomId];
+            activeRooms = activeRooms.filter((item) => item !== roomId);
+            availableRooms = availableRooms.filter((item) => item !== roomId);
+            gameData[gameId] = gameData[gameId]?.filter((item) => item !== roomId);
+        })
+    } else {
+        console.log('room deleted')
         clearTimer(roomId);
         delete roomData[roomId];
         activeRooms = activeRooms.filter((item) => item !== roomId);
         availableRooms = availableRooms.filter((item) => item !== roomId);
         gameData[gameId] = gameData[gameId]?.filter((item) => item !== roomId);
-    })
+        emitStatus({ io, socket, roomId, message: "All players left the game. Game Over", duration: 0, step: 3 });
+    }
 }
 
 const emitStatus = ({ io, socket, roomId, message, duration, step }: { io: any, socket: any, roomId: string, message: string, duration: number, step: number }) => {
@@ -201,3 +225,34 @@ export const rejoinGame = ({ io, socket, roomId }: { io: any, socket: Socket, ro
     let timerData = checkTimer(roomId);
     emitStatus({ io, socket, roomId, message: "Player rejoined", duration: roomData[roomId]?.duration, step: timerData.step });
 }
+
+export const addConnctedUserInList = (userId: string) => {
+    connectedUserIds.push(userId);
+}
+
+export const removeDisconnectUserBeforeStart = ({ io, socket, userId }: { io: any, socket: Socket, userId: string }) => {
+    let userIndex = connectedUserIds.indexOf(userId);
+    if(userIndex !== -1){
+        connectedUserIds.splice(userIndex, 1);
+    }
+}
+
+
+// Object.values(roomData).some((roomDetails) => {
+//     let check = roomDetails.userIds.includes(userId);
+//     if (check) {
+//         let roomId = roomDetails.roomId;
+//         let timerData = checkTimer(roomDetails.roomId);
+//         if (timerData.step === 1) {
+//             let userIndex = roomData[roomId].userIds.indexOf(userId);
+//             if (userIndex !== -1) {
+//                 roomData[roomId].userIds.splice(userIndex, 1)
+//                 roomData[roomId].remainingSlots += 1;
+//                 roomData[roomId].scores.splice(userIndex, 1);
+//                 roomData[roomId].joinedAt.splice(userIndex, 1);
+//                 roomData[roomId].disconnectedAt.splice(userIndex, 1);
+//             }
+//             // emitStatus({ io, socket, roomId, message: "Player disconnected", duration: roomData[roomId]?.duration, step: timerData.step });
+//         }
+//     }
+// });
