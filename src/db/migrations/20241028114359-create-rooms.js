@@ -11,11 +11,12 @@ module.exports = {
       },
       gameId: {
         type: Sequelize.STRING,
-        primaryKey: true,
         allowNull: false,
+        unique: false,
       },
       roomId: {
         type: Sequelize.STRING,
+        primaryKey: true,
         allowNull: false,
         unique: true
       },
@@ -32,7 +33,7 @@ module.exports = {
         allowNull: false,
       },
       disconnectedAt: {
-        type: Sequelize.ARRAY(Sequelize.DATE),
+        type: Sequelize.ARRAY(Sequelize.STRING),
         allowNull: false,
       },
       status: {

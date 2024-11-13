@@ -86,7 +86,7 @@ export const updateAvailableRoom = ({ gameId, roomId, userId, io, socket }: upda
     roomData[roomId].userIds.push(userId);
     roomData[roomId].scores.push(0);
     roomData[roomId].joinedAt.push(new Date());
-    roomData[roomId].disconnectedAt.push(null);
+    roomData[roomId].disconnectedAt.push(0);
     if (roomData[roomId].remainingSlots === 0) {
         // fromAvailableToActive(roomId);
         clearTimer(roomId);
@@ -109,7 +109,7 @@ export const createNewAvailableRoom = ({ gameId, totalSlots, userId, duration, i
         userIds: [userId],
         scores: [0],
         joinedAt: [new Date()],
-        disconnectedAt: [null]
+        disconnectedAt: [0]
     }
     roomData[roomId] = newData;
     commonProcessWaiting({ roomId, gameId, userId, io, socket });
@@ -129,7 +129,7 @@ export const createNewGame = ({ gameId, totalSlots, userId, duration, io, socket
         userIds: [userId],
         scores: [0],
         joinedAt: [new Date()],
-        disconnectedAt: [null]
+        disconnectedAt: [0]
     }
     roomData[roomId] = newData;
     commonProcessWaiting({ roomId, gameId, userId, io, socket });
@@ -226,15 +226,29 @@ export const rejoinGame = ({ io, socket, roomId }: { io: any, socket: Socket, ro
     emitStatus({ io, socket, roomId, message: "Player rejoined", duration: roomData[roomId]?.duration, step: timerData.step });
 }
 
-export const addConnctedUserInList = (userId: string) => {
+export const addConnectedUserInList = (userId: string) => {
     connectedUserIds.push(userId);
+    Object.values(roomData).some((roomDetails) => {
+        let check = roomDetails.userIds.includes(userId);
+        let userIndex = roomDetails.userIds.indexOf(userId);
+        if (check) {
+            roomDetails.disconnectedAt[userIndex] = 0;
+        }
+    });
 }
 
 export const removeDisconnectUserBeforeStart = ({ io, socket, userId }: { io: any, socket: Socket, userId: string }) => {
     let userIndex = connectedUserIds.indexOf(userId);
-    if(userIndex !== -1){
+    if (userIndex !== -1) {
         connectedUserIds.splice(userIndex, 1);
     }
+    Object.values(roomData).some((roomDetails) => {
+        let check = roomDetails.userIds.includes(userId);
+        let userIndex = roomDetails.userIds.indexOf(userId);
+        if (check) {
+            roomDetails.disconnectedAt[userIndex] = new Date();
+        }
+    });
 }
 
 

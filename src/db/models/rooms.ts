@@ -13,6 +13,7 @@ const Rooms = sequelize.define('rooms', {
     type: DataTypes.STRING,
     primaryKey: true,
     allowNull: false,
+    unique: false,
   },
   roomId: {
     type: DataTypes.STRING,
@@ -32,7 +33,7 @@ const Rooms = sequelize.define('rooms', {
     allowNull: false,
   },
   disconnectedAt: {
-    type: DataTypes.ARRAY(DataTypes.DATE),
+    type: DataTypes.ARRAY(DataTypes.STRING),
     allowNull: false,
   },
   status: {

@@ -7,7 +7,7 @@ export interface RoomDetails {
     userIds: string[];
     scores: number[];
     joinedAt: Date[];
-    disconnectedAt: (Date | null)[];
+    disconnectedAt: (Date | number)[];
 }
 
 export interface RoomData {
