@@ -3,6 +3,7 @@ import { Users, UserTransactions } from "../db/models";
 import { Request, Response } from "express";
 import { ERROR_CODES } from "../utils/handleErrorCode";
 import { sendSuccess, sendError } from "../utils/handleResponse";
+import { AuthenticatedRequest } from "../types/common";
 
 
 export const getUserDetails = async (req: Request, res: Response) => {
@@ -61,10 +62,10 @@ export const getUserTransactions = async (req: Request, res: Response) => {
     }
 }
 
-export const createUserTransaction = async (req: Request, res: Response) => {
-
+export const createUserTransaction = async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const { userId, transactionId, type, method, details, amount, status, effect } = req.body;
+        const { transactionId, type, method, details, amount, status, effect } = req.body;
+        const userId = req?.userId;
         if (!transactionId || !userId || !type || !method || !amount) {
             return sendError(res, 400, 'Please send transactionId, userId, type, method and amount', ERROR_CODES.MISSING_FIELD);
         }

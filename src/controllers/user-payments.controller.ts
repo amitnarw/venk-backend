@@ -2,6 +2,7 @@ import { ERROR_CODES } from "../utils/handleErrorCode";
 import { Request, Response } from "express"
 import { sendSuccess, sendError } from "../utils/handleResponse";
 import { UserPaymentMethods, Users } from "../db/models";
+import { AuthenticatedRequest } from "../types/common";
 
 export const getUserPaymentMethods = async (req: Request, res: Response) => {
     try {
@@ -27,9 +28,10 @@ export const getUserPaymentMethods = async (req: Request, res: Response) => {
     }
 }
 
-export const createUserPaymentMethod = async (req: Request, res: Response) => {
+export const createUserPaymentMethod = async (req: AuthenticatedRequest, res: Response) => {
     try {
-        let { userId, method, details } = req.body;
+        let { method, details } = req.body;
+        const userId = req?.userId;
         if (!userId || !method || !details) {
             return sendError(res, 400, 'Please send userId, method and details.', ERROR_CODES.MISSING_FIELD);
         }

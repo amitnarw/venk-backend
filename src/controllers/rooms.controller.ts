@@ -83,19 +83,32 @@ export const alreadyPlaying = async (req: AuthenticatedRequest, res: Response) =
         if (!userId || userId === "") {
             return sendError(res, 400, `Please provide userId`, ERROR_CODES.MISSING_FIELD);
         }
-        let resp = await Rooms.findOne({
+        let resp: any = await Rooms.findOne({
             where: {
                 status: 'active',
                 userIds: {
                     [Op.contains]: [userId]
                 }
             },
-            include: {
-                model: Games
-            },
-            logging: console.log 
+            include: [
+                {
+                    model: Games
+                }
+            ]
         });
-        return sendSuccess(res, 200, resp);
+        let response;
+        if (resp?.roomId) {
+            response = {
+                playing: true,
+                roomId: resp.roomId,
+                gameDetails: resp.game
+            }
+        } else {
+            response = {
+                playing: false,
+            }
+        }
+        return sendSuccess(res, 200, response);
     } catch (err) {
         return sendError(res, 500, `Error while checking if already playing: ${err}`, ERROR_CODES.SERVER_ERROR);
     }

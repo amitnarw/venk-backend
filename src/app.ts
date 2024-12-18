@@ -48,8 +48,18 @@ app.use((req, res) => {
 //     console.log(`Server started on port ${PORT}`);
 // })
 
+console.log('1', '======================================')
+
 const server = createServer(app);
-const io = new Server(server);
+// const io = new Server(server);
+const io = new Server(server, {
+    cors: {
+        origin: '*',  // You can change this to specify a particular domain, e.g., "http://localhost:3000"
+        methods: ['GET', 'POST'],
+        allowedHeaders: ['Authorization'], // Ensure headers you need (e.g., Authorization) are allowed
+        credentials: true,  // Allow cookies and other credentials if necessary
+    },
+});
 
 socketSetup(io);
 

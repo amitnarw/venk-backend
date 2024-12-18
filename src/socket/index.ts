@@ -6,6 +6,7 @@ import alreadyInRoomHandler from "./handlers/alreadyInRoom.handlers";
 import { addConnectedUserInList, removeDisconnectUserBeforeStart } from "../data/gameData";
 
 const socketSetup = (io: Server) => {
+    console.log('2', '======================================')
     io.use(validateSocket);
     io.on("connection", async (socket) => {
         console.log('user connected', socket.data.user.userId);
@@ -17,7 +18,7 @@ const socketSetup = (io: Server) => {
 
         socket.on("disconnect", () => {
             console.log("User disconnect", socket.id);
-            removeDisconnectUserBeforeStart({io, socket, userId: socket.data.user.userId});
+            removeDisconnectUserBeforeStart({ io, socket, userId: socket.data.user.userId });
         })
     })
 }

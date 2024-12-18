@@ -6,7 +6,7 @@ import { sendError, sendSuccess } from "../utils/handleResponse";
 import { generateToken } from "../utils/handleToken";
 import { ERROR_CODES } from "../utils/handleErrorCode";
 import { Op } from "sequelize";
-import { AuthenticatedRequest } from "types/common";
+import { AuthenticatedRequest } from "../types/common";
 
 const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
@@ -111,8 +111,12 @@ export const userRegister = async (req: Request, res: Response) => {
 export const userLogin = async (req: Request, res: Response) => {
     try {
         const { img, firstName, lastName, email, password, loginType, phone, dob } = req.body;
+        const loginTypeArr = ["email", "password", "phone"];
         if (!loginType || loginType === "") {
             return sendError(res, 400, "loginType must be provided", ERROR_CODES.MISSING_FIELD);
+        }
+        if (!loginTypeArr.includes(loginType)) {
+            return sendError(res, 400, "loginType is not valid", ERROR_CODES.INVALID_VALUE);
         }
 
         if (loginType === "email" && !email) {
