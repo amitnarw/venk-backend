@@ -1,6 +1,6 @@
 import { v4 as uuid_v4 } from 'uuid';
 import { createNewGameAttributes, GameData, RoomData, updateAvailableRoomAttributes } from "../types/socketTypes";
-import { Rooms } from '../db/models';
+import { Rooms, Users } from '../db/models';
 import { checkTimer, clearTimer, startTimer } from '../utils/timerManager';
 import { Socket } from 'socket.io';
 
@@ -115,11 +115,17 @@ export const createNewAvailableRoom = ({ gameId, totalSlots, userId, duration, i
     commonProcessWaiting({ roomId, gameId, userId, io, socket });
 }
 
-export const createNewGame = ({ gameId, totalSlots, userId, duration, io, socket }: createNewGameAttributes) => {
+export const createNewGame = async ({ gameId, totalSlots, userId, duration, io, socket }: createNewGameAttributes) => {
     const roomId = `roomId-${uuid_v4()}`;
     activeGames.push(gameId);
     availableRooms.push(roomId);
     gameData[gameId] = [roomId];
+    let userData = await Users.findOne({
+        where: {
+            userId
+        },
+        attributes: ["userId", "img", "firstName", "lastName", "email"]
+    });
     let newData = {
         roomId,
         gameId,
@@ -127,6 +133,7 @@ export const createNewGame = ({ gameId, totalSlots, userId, duration, io, socket
         remainingSlots: totalSlots - 1,
         totalSlots,
         userIds: [userId],
+        userDetails: [userData],
         scores: [0],
         joinedAt: [new Date()],
         disconnectedAt: [0]
@@ -159,7 +166,7 @@ const commonProcessStartGame = async ({ roomId, gameId, userId, io, socket }: { 
 
     if (roomData[roomId]?.userIds.length > 0) {
         fromAvailableToActive(roomId);
-        emitStatus({ io, socket, roomId, message: "Game started", duration: roomData[roomId]?.duration, step: 2 });
+        emitStatus({ io, socket, roomId, message: "Game started", duration: roomData[roomId]?.duration, step: 2, aiPlay: roomData[roomId]?.userIds.length === 1 ? true : false });
         await Rooms.create({
             gameId,
             roomId,
@@ -206,9 +213,9 @@ const commonProcessStartGame = async ({ roomId, gameId, userId, io, socket }: { 
     }
 }
 
-const emitStatus = ({ io, socket, roomId, message, duration, step }: { io: any, socket: any, roomId: string, message: string, duration: number, step: number }) => {
+const emitStatus = ({ io, socket, roomId, message, duration, step, aiPlay }: { io: any, socket: any, roomId: string, message: string, duration: number, step: number, aiPlay?: boolean }) => {
     socket.join(roomId);
-    io.to(roomId).emit("GET_AVAILABLE_ROOMS", { statusCode: 200, data: roomData[roomId], status: { message, duration, step }, success: true })
+    io.to(roomId).emit("GET_AVAILABLE_ROOMS", { statusCode: 200, data: roomData[roomId], status: { message, duration, step }, success: true, aiPlay })
 }
 
 const fromAvailableToActive = (roomId: string) => {
