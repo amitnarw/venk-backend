@@ -9,7 +9,7 @@ const socketSetup = (io: Server) => {
     console.log('2', '======================================')
     io.use(validateSocket);
     io.on("connection", async (socket) => {
-        console.log('user connected', socket.data.user.userId);
+        console.log('user connected', socket.data.user.userId, socket.id);
         addConnectedUserInList(socket.data.user.userId);
 
         await alreadyInRoomHandler(io, socket);

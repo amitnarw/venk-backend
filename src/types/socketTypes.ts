@@ -5,6 +5,7 @@ export interface RoomDetails {
     remainingSlots: number;
     totalSlots: number;
     userIds: string[];
+    userDetails: any[];
     scores: number[];
     joinedAt: Date[];
     disconnectedAt: (Date | number)[];
