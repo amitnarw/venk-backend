@@ -79,7 +79,7 @@ export const remainingSlotsInRoom = (roomId: string) => {
 export const updateScore = ({ io, socket, roomId, userId, score }: { io: any, socket: any, roomId: string, userId: string, score: number }) => {
     let index = roomData[roomId].userIds.indexOf(userId);
     roomData[roomId].scores[index] = score;
-    emitStatus({ io, socket, roomId, message: "Score updated", duration: roomData[roomId]?.duration, step: 2 });
+    // emitStatus({ io, socket, roomId, message: "Score updated", duration: roomData[roomId]?.duration, step: 2 });
 }
 
 export const updateAvailableRoom = async ({ gameId, roomId, userId, io, socket }: updateAvailableRoomAttributes) => {
