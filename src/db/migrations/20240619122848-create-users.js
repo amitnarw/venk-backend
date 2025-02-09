@@ -55,7 +55,7 @@ module.exports = {
       balance: {
         type: Sequelize.INTEGER,
         allowNull: false,
-        defaultValue: 0
+        defaultValue: 1000
       },
       createdAt: {
         allowNull: false,

@@ -14,32 +14,32 @@ let connectedUserIds: string[] = []
 let gameData: GameData = {}
 let roomData: RoomData = {}
 
-export const getAllActiveGames = () => {
+const getAllActiveGames = () => {
     return activeGames;
 }
 
-export const getAllActiveRooms = () => {
+const getAllActiveRooms = () => {
     return activeRooms;
 }
 
-export const getAllAvailableRooms = () => {
+const getAllAvailableRooms = () => {
     return availableRooms;
 }
 
-export const checkIfGameActive = (gameId: string) => {
+const checkIfGameActive = (gameId: string) => {
     return activeGames.includes(gameId);
 }
 
-export const checkIfRoomActive = (roomId: string) => {
+const checkIfRoomActive = (roomId: string) => {
     return activeRooms.includes(roomId);
 }
 
-export const checkIfRoomAvailable = (gameId: string) => {
+const checkIfRoomAvailable = (gameId: string) => {
     const roomId = gameData[gameId].find(roomId => availableRooms.includes(roomId));
     return roomId || null;
 }
 
-export const isUserInAnyRoom = (userId: string) => {
+const isUserInAnyRoom = (userId: string) => {
     let returnData = {
         success: false,
         index: -1,
@@ -60,29 +60,29 @@ export const isUserInAnyRoom = (userId: string) => {
     return returnData;
 };
 
-export const getAllRoomsOfGame = (gameId: string) => {
+const getAllRoomsOfGame = (gameId: string) => {
     return gameData[gameId]
 }
 
-export const getDataOfRoom = (roomId: string) => {
+const getDataOfRoom = (roomId: string) => {
     return roomData[roomId]
 }
 
-export const totalSlotsInRoom = (roomId: string) => {
+const totalSlotsInRoom = (roomId: string) => {
     return roomData[roomId].totalSlots;
 }
 
-export const remainingSlotsInRoom = (roomId: string) => {
+const remainingSlotsInRoom = (roomId: string) => {
     return roomData[roomId].remainingSlots;
 }
 
-export const updateScore = ({ io, socket, roomId, userId, score }: { io: any, socket: any, roomId: string, userId: string, score: number }) => {
+const updateScore = ({ io, socket, roomId, userId, score }: { io: any, socket: any, roomId: string, userId: string, score: number }) => {
     let index = roomData[roomId].userIds.indexOf(userId);
     roomData[roomId].scores[index] = score;
     // emitStatus({ io, socket, roomId, message: "Score updated", duration: roomData[roomId]?.duration, step: 2 });
 }
 
-export const updateAvailableRoom = async ({ gameId, roomId, userId, io, socket }: updateAvailableRoomAttributes) => {
+const updateAvailableRoom = async ({ gameId, roomId, userId, io, socket }: updateAvailableRoomAttributes) => {
     roomData[roomId].remainingSlots -= 1;
     roomData[roomId].userIds.push(userId);
     roomData[roomId].scores.push(0);
@@ -104,7 +104,7 @@ export const updateAvailableRoom = async ({ gameId, roomId, userId, io, socket }
     }
 }
 
-export const createNewAvailableRoom = async ({ gameId, totalSlots, userId, duration, io, socket }: createNewGameAttributes) => {
+const createNewAvailableRoom = async ({ gameId, totalSlots, userId, duration, io, socket }: createNewGameAttributes) => {
     const roomId = `roomId-${uuid_v4()}`;
     availableRooms.push(roomId);
     gameData[gameId].push(roomId);
@@ -130,7 +130,7 @@ export const createNewAvailableRoom = async ({ gameId, totalSlots, userId, durat
     commonProcessWaiting({ roomId, gameId, userId, io, socket });
 }
 
-export const createNewGame = async ({ gameId, totalSlots, userId, duration, io, socket }: createNewGameAttributes) => {
+const createNewGame = async ({ gameId, totalSlots, userId, duration, io, socket }: createNewGameAttributes) => {
     const roomId = `roomId-${uuid_v4()}`;
     activeGames.push(gameId);
     availableRooms.push(roomId);
@@ -150,6 +150,7 @@ export const createNewGame = async ({ gameId, totalSlots, userId, duration, io, 
         userIds: [userId],
         userDetails: [userData],
         scores: [0],
+        // bet: bet,
         joinedAt: [new Date()],
         disconnectedAt: [0]
     }
@@ -253,12 +254,12 @@ const fromAvailableToActive = (roomId: string) => {
     }
 }
 
-export const rejoinGame = ({ io, socket, roomId }: { io: any, socket: Socket, roomId: string }) => {
+const rejoinGame = ({ io, socket, roomId }: { io: any, socket: Socket, roomId: string }) => {
     let timerData = checkTimer(roomId);
     emitStatus({ io, socket, roomId, message: "Player rejoined", duration: roomData[roomId]?.duration, step: timerData.step });
 }
 
-export const addConnectedUserInList = (userId: string) => {
+const addConnectedUserInList = (userId: string) => {
     connectedUserIds.push(userId);
     Object.values(roomData).some((roomDetails) => {
         let check = roomDetails.userIds.includes(userId);
@@ -269,7 +270,7 @@ export const addConnectedUserInList = (userId: string) => {
     });
 }
 
-export const removeDisconnectUserBeforeStart = ({ io, socket, userId }: { io: any, socket: Socket, userId: string }) => {
+const removeDisconnectUserBeforeStart = ({ io, socket, userId }: { io: any, socket: Socket, userId: string }) => {
     let userIndex = connectedUserIds.indexOf(userId);
     if (userIndex !== -1) {
         connectedUserIds.splice(userIndex, 1);
@@ -302,3 +303,25 @@ export const removeDisconnectUserBeforeStart = ({ io, socket, userId }: { io: an
 //         }
 //     }
 // });
+
+
+export { 
+    getAllActiveGames,
+    getAllActiveRooms,
+    getAllAvailableRooms,
+    checkIfGameActive,
+    checkIfRoomActive,
+    checkIfRoomAvailable,
+    isUserInAnyRoom,
+    getAllRoomsOfGame,
+    getDataOfRoom,
+    totalSlotsInRoom,
+    remainingSlotsInRoom,
+    updateScore,
+    updateAvailableRoom,
+    createNewAvailableRoom,
+    createNewGame,
+    rejoinGame,
+    addConnectedUserInList,
+    removeDisconnectUserBeforeStart 
+}

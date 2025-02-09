@@ -24,11 +24,19 @@ const roomHandlers = (io: Server, socket: Socket) => {
     })
 
     socket.on("UPDATE_SCORES", ({ roomId, userId, score }) => {
+        if (!roomId || !userId || !score) {
+            socket.emit("error", { message: "Missing roomId OR userId OR score" });
+            return;
+        }
         updateScore({ io, socket, roomId, userId, score })
     })
 
     socket.on("REJOIN_GAME", (roomId) => {
-        rejoinGame({io, socket, roomId});
+        if (!roomId) {
+            socket.emit("error", { message: "Missing roomId" });
+            return;
+        }
+        rejoinGame({ io, socket, roomId });
     })
 };
 

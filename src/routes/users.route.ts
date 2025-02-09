@@ -1,9 +1,10 @@
-import { createUserTransaction, getUserDetails, getUserTransactions } from "../controllers/users.controller";
+import { createUserTransaction, getBalance, getUserDetails, getUserTransactions } from "../controllers/users.controller";
 import express from "express";
 
 const router = express();
 
 router.route("/:userId/details").get(getUserDetails);
+router.route("/balance").get(getBalance);
 router.route("/:userId/transactions").get(getUserTransactions);
 router.route("/transactions").post(createUserTransaction)
 

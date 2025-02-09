@@ -36,6 +36,11 @@ const Games = sequelize.define('games', {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
+  bets: {
+    type: DataTypes.ARRAY(DataTypes.INTEGER),
+    allowNull: true,
+    defaultValue: [0],
+  }
 }, {
   modelName: 'games',
   timestamps: true,

@@ -6,7 +6,7 @@ import { sendSuccess, sendError } from "../utils/handleResponse";
 import { AuthenticatedRequest } from "../types/common";
 
 
-export const getUserDetails = async (req: Request, res: Response) => {
+const getUserDetails = async (req: Request, res: Response) => {
     try {
         let { userId } = req.params;
 
@@ -31,7 +31,7 @@ export const getUserDetails = async (req: Request, res: Response) => {
     }
 }
 
-export const getUserTransactions = async (req: Request, res: Response) => {
+const getUserTransactions = async (req: Request, res: Response) => {
     try {
         let { userId } = req.params;
         if (!userId) {
@@ -62,14 +62,14 @@ export const getUserTransactions = async (req: Request, res: Response) => {
     }
 }
 
-export const createUserTransaction = async (req: AuthenticatedRequest, res: Response) => {
+const createUserTransaction = async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { transactionId, type, method, details, amount, status, effect } = req.body;
         const userId = req?.userId;
         if (!transactionId || !userId || !type || !method || !amount) {
             return sendError(res, 400, 'Please send transactionId, userId, type, method and amount', ERROR_CODES.MISSING_FIELD);
         }
-    
+
         let checkUser: any = await Users.findOne({
             where: {
                 userId
@@ -129,3 +129,26 @@ export const createUserTransaction = async (req: AuthenticatedRequest, res: Resp
         return sendError(res, 500, `Error while adding user transaction: ${err}`, ERROR_CODES.SERVER_ERROR);
     }
 };
+
+const getBalance = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const userId = req?.userId;
+        let data = await Users.findOne({
+            where: {
+                userId
+            },
+            attributes: ['balance']
+        });
+
+        if (!data) {
+            return sendError(res, 404, "User not found", ERROR_CODES.USER_NOT_FOUND);
+        }
+
+        return sendSuccess(res, 200, data);
+
+    } catch (err) {
+        return sendError(res, 500, `Error while adding user transaction: ${err}`, ERROR_CODES.SERVER_ERROR);
+    }
+}
+
+export { getUserDetails, getUserTransactions, createUserTransaction, getBalance }
