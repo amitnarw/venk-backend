@@ -86,7 +86,7 @@ const updateScore = ({ io, socket, roomId, userId, score }: { io: any, socket: a
     // emitStatus({ io, socket, roomId, message: "Score updated", duration: roomData[roomId]?.duration, step: 2 });
 }
 
-const updateAvailableRoom = async ({ gameId, roomId, userId, io, socket }: updateAvailableRoomAttributes) => {
+const updateAvailableRoom = async ({ gameId, roomId, userId, io, socket, bet }: updateAvailableRoomAttributes) => {
     roomData[roomId].remainingSlots -= 1;
     roomData[roomId].userIds.push(userId);
     roomData[roomId].scores.push(0);
@@ -102,7 +102,7 @@ const updateAvailableRoom = async ({ gameId, roomId, userId, io, socket }: updat
     if (roomData[roomId].remainingSlots === 0) {
         // fromAvailableToActive(roomId);
         clearTimer(roomId);
-        commonProcessStartGame({ roomId, gameId, userId, io, socket });
+        commonProcessStartGame({ roomId, gameId, userId, io, socket, bet });
     } else {
         emitStatus({ io, socket, roomId, message: `New player joined, waiting for ${roomData[roomId].remainingSlots} players`, duration: 20000, step: 1 });
     }
@@ -132,7 +132,7 @@ const createNewAvailableRoom = async ({ gameId, totalSlots, userId, duration, io
         bet: bet
     }
     roomData[roomId] = newData;
-    commonProcessWaiting({ roomId, gameId, userId, io, socket });
+    commonProcessWaiting({ roomId, gameId, userId, io, socket, bet });
 }
 
 const createNewGame = async ({ gameId, totalSlots, userId, duration, io, socket, bet }: createNewGameAttributes) => {
@@ -160,19 +160,19 @@ const createNewGame = async ({ gameId, totalSlots, userId, duration, io, socket,
         bet: bet,
     }
     roomData[roomId] = newData;
-    commonProcessWaiting({ roomId, gameId, userId, io, socket });
+    commonProcessWaiting({ roomId, gameId, userId, io, socket, bet });
 }
 
-const commonProcessWaiting = ({ roomId, gameId, userId, io, socket }: { roomId: string, gameId: string, userId: string, io: any, socket: any }) => {
+const commonProcessWaiting = ({ roomId, gameId, userId, io, socket, bet }: { roomId: string, gameId: string, userId: string, io: any, socket: any, bet: number }) => {
 
     emitStatus({ io, socket, roomId, message: `Room created, waiting for ${roomData[roomId].remainingSlots} players`, duration: 20000, step: 1 });
     startTimer(roomId, 1, 'timeout', 20000, async () => {
-        commonProcessStartGame({ roomId, gameId, userId, io, socket });
+        commonProcessStartGame({ roomId, gameId, userId, io, socket, bet });
     });
 }
 
 
-const commonProcessStartGame = async ({ roomId, gameId, userId, io, socket }: { roomId: string, gameId: string, userId: string, io: any, socket: any }) => {
+const commonProcessStartGame = async ({ roomId, gameId, userId, io, socket, bet }: { roomId: string, gameId: string, userId: string, io: any, socket: any, bet: number }) => {
 
     for (const roomId in roomData) {
         if (roomData.hasOwnProperty(roomId)) {
@@ -195,32 +195,53 @@ const commonProcessStartGame = async ({ roomId, gameId, userId, io, socket }: { 
             roomData[roomId].joinedAt.push(new Date());
             roomData[roomId].disconnectedAt.push(0);
             roomData[roomId].userDetails.push(getAiData);
-        }
-        emitStatus({ io, socket, roomId, message: "Game started", duration: roomData[roomId]?.duration, step: 2, aiPlay: true });
 
-        await Rooms.create({
-            gameId,
-            roomId,
-            userIds: roomData[roomId]?.userIds,
-            scores: roomData[roomId]?.scores,
-            joinedAt: roomData[roomId]?.joinedAt,
-            disconnectedAt: roomData[roomId]?.disconnectedAt,
-            status: "active",
-            startTime: new Date(),
-            aiPlay: true
-        });
+            emitStatus({ io, socket, roomId, message: "Game started", duration: roomData[roomId]?.duration, step: 2, aiPlay: true });
+
+            await Rooms.create({
+                gameId,
+                roomId,
+                userIds: roomData[roomId]?.userIds,
+                scores: roomData[roomId]?.scores,
+                joinedAt: roomData[roomId]?.joinedAt,
+                disconnectedAt: roomData[roomId]?.disconnectedAt,
+                status: "active",
+                startTime: new Date(),
+                aiPlay: true,
+                bet: bet
+            });
+        } else {
+            emitStatus({ io, socket, roomId, message: "Game started", duration: roomData[roomId]?.duration, step: 2, aiPlay: false });
+
+            await Rooms.create({
+                gameId,
+                roomId,
+                userIds: roomData[roomId]?.userIds,
+                scores: roomData[roomId]?.scores,
+                joinedAt: roomData[roomId]?.joinedAt,
+                disconnectedAt: roomData[roomId]?.disconnectedAt,
+                status: "active",
+                startTime: new Date(),
+                aiPlay: false,
+                bet: bet
+            });
+        }
 
         clearTimer(roomId);
-console.log(roomId, 2, 'gameComplete', roomData[roomId]?.duration, roomData[roomId], 'rrrrrrrrrrrrrrrrrrr')
+
         startTimer(roomId, 2, 'gameComplete', roomData[roomId]?.duration, async () => {
-            emitStatus({ io, socket, roomId, message: "Game over", duration: 0, step: 3 });
+            let winnerUserId = roomData[roomId]?.scores[0] > roomData[roomId]?.scores[1] ? roomData[roomId]?.userIds[0] : roomData[roomId]?.userIds[1];
+            
+            emitStatus({ io, socket, roomId, message: "Game over", duration: 0, step: 3, winnerUserId: winnerUserId, winAmount: bet * roomData[roomId]?.userIds?.length });
             await Rooms.update({
                 // userIds: roomData[roomId]?.userIds,
                 scores: roomData[roomId]?.scores,
                 // joinedAt: roomData[roomId]?.joinedAt,
                 disconnectedAt: roomData[roomId]?.disconnectedAt,
                 status: "finished",
-                endTime: Date.now()
+                endTime: Date.now(),
+                winnerUserId: winnerUserId,
+                winAmount: bet * roomData[roomId]?.userIds?.length
             }, {
                 where: {
                     roomId,
@@ -244,9 +265,9 @@ console.log(roomId, 2, 'gameComplete', roomData[roomId]?.duration, roomData[room
     }
 }
 
-const emitStatus = ({ io, socket, roomId, message, duration, step, aiPlay }: { io: any, socket: any, roomId: string, message: string, duration: number, step: number, aiPlay?: boolean }) => {
+const emitStatus = ({ io, socket, roomId, message, duration, step, aiPlay, winnerUserId, winAmount }: { io: any, socket: any, roomId: string, message: string, duration: number, step: number, aiPlay?: boolean, winnerUserId?: string, winAmount?: number }) => {
     socket.join(roomId);
-    io.to(roomId).emit("GET_AVAILABLE_ROOMS", { statusCode: 200, data: roomData[roomId], status: { message, duration, step }, success: true, aiPlay })
+    io.to(roomId).emit("GET_AVAILABLE_ROOMS", { statusCode: 200, data: roomData[roomId], status: { message, duration, step, winnerUserId, winAmount }, success: true, aiPlay })
 }
 
 const fromAvailableToActive = (roomId: string) => {
@@ -318,7 +339,7 @@ const checkUserBalance = async ({ userId, bet }: { userId: string, bet: number }
             },
             attributes: ["balance"]
         });
-        if(!userData) return false;
+        if (!userData) return false;
         return bet <= userData?.dataValues?.balance
     } catch (err) {
         console.log(err, 'xxxxxxxxERRORxxxxxxxxxx')

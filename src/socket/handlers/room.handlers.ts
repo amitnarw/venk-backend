@@ -22,7 +22,7 @@ const roomHandlers = (io: Server, socket: Socket) => {
                 console.log(checkRoom, '-----checkRoom------')
                 if (checkRoom) {
                     console.log(3, checkRoom)
-                    updateAvailableRoom({ gameId, roomId: checkRoom, userId: socket.data.user.userId, io, socket });
+                    updateAvailableRoom({ gameId, roomId: checkRoom, userId: socket.data.user.userId, io, socket, bet });
                 } else {
                     console.log(4)
                     createNewAvailableRoom({ gameId, totalSlots, userId: socket.data.user.userId, duration, io, socket, bet });

@@ -46,4 +46,5 @@ export interface updateAvailableRoomAttributes {
     userId: string,
     io: any;
     socket: any;
+    bet: number;
 }

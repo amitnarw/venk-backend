@@ -14,6 +14,16 @@ module.exports = {
       allowNull: true,
       defaultValue: [0],
     });
+    await queryInterface.addColumn('rooms', 'bet', {
+      type: Sequelize.INTEGER,
+      allowNull: false,
+      defaultValue: [0],
+    });
+    await queryInterface.addColumn('rooms', 'winAmount', {
+      type: Sequelize.INTEGER,
+      allowNull: false,
+      defaultValue: [0],
+    });
   },
 
   async down (queryInterface, Sequelize) {
