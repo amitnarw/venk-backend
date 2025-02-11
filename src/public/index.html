@@ -2,96 +2,269 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WebSocket Room Demo</title>
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
-    <style>
-
-    </style>
+    <style></style>
 </head>
 
 <body>
-
     <div>
+        <h2>Login with email</h2>
+        <input type="email" placeholder="email address" id="email" name="email" />
+        <button onclick="loginUser()">Login</button>
+        <p id="loginDetails"></p>
+
         <h1>Games list</h1>
-        <button onclick=gameList()>Get data</button>
+        <button onclick="isAlreadyPlaying()">Check already playing?</button>
+        <button onclick="getGameList()">Get game list</button>
     </div>
+
+    <p id="joinedRoom"></p>
     <ul id="gamesList"></ul>
 
-    <h2>Rooms list</h2>
-    <ul id="roomsList"></ul>
-
     <h3>Room details:</h3>
-    <ul id="roomDetails"></ul>
+    <p id="roomDetails"></p>
+
+    <div id="updateScores">
+        <h3>Update scores</h3>
+        <ul id="updateScoresList"></ul>
+    </div>
+
+    <button id="rejoinRoom" onclick="rejoinRoom()">
+        Re-join already joined room
+    </button>
 
     <script>
+        let token;
+        let link = "3.7.79.47";
+        // let link = "localhost:5000";
+        // let token =
+        //   "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJmYjdhNzBjZS1iNzljLTQzNGUtODJmOS0zNGJmMWY3ODBhOGIiLCJpYXQiOjE3MzEzNDYzNzIsImV4cCI6MTczMTM1MzU3Mn0.CDG5Oma9PeOz57yy33oUzywc2Ek8jdrSD9RSzpeF0ew";
 
-        const gameList = async () => {
-            let res = await fetch("/api/v1/games", {
+        // let token =
+        //   "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI1MDY1NDY0My05OWRhLTRjMGEtYWY4Yy0wY2FjMDU4ZTE3MTkiLCJpYXQiOjE3MzEzMzkwNzcsImV4cCI6MTczMTM0NjI3N30.HQ2NX-wM_62con2ibAnH3YAVfFSrLL6--TzK1i7m-cs";
+
+        // let token = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJiNGQ4NzE0OS1mNDAyLTRjMGEtODI2Ny05NDIyMjY2Y2E0NzIiLCJpYXQiOjE3MzEyNDM2NzksImV4cCI6MTczMTI1MDg3OX0.Qpv8gshYLfyHnNyrVbD4bWxUQPm9LnN6XcmI3FGg95M";
+
+        let list = document.getElementById("gamesList");
+        let loginDetails = document.getElementById("loginDetails");
+        let updateScoresDiv = document.getElementById("updateScores");
+        let updateScoresList = document.getElementById("updateScoresList");
+        let rejoinRoomButton = document.getElementById("rejoinRoom");
+        let rejoinRoomId = 0;
+
+        loginDetails.style.display = "none";
+        updateScoresDiv.style.display = "none";
+        rejoinRoomButton.style.display = "none";
+
+        let userEmail = document.getElementById("email");
+
+        const isAlreadyPlaying = async () => {
+            let res = await fetch(`http://${link}/api/v1/rooms/alreadyPlaying`, {
                 headers: {
-                    "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJmNTJjZTUzNC1jNDg2LTRiMzEtYTY5OS1iOWFjMWI3ZDI1Y2IiLCJpYXQiOjE3MzEwNTA2MjAsImV4cCI6MTczMTA1NDIyMH0.JEh6qNg9simlWZdyuFPEHT4Kp3IEnj3XnrR11I8EQ98"
+                    Authorization: token,
+                },
+            });
+            let data = await res.json();
+            console.log(data);
+            rejoinRoomId = data?.data?.roomId;
+            rejoinRoomButton.style.display = !data?.data ? "none" : "block";
+            document.getElementById("joinedRoom").innerHTML = !data?.success
+                ? data?.error
+                : !data?.data?.playing
+                    ? "Not in any room / not already playing"
+                    : "Already joined <br>room = " +
+                    data?.data?.roomId +
+                    "<br>game = " +
+                    data?.data?.game?.name;
+        };
+
+        const getGameList = async () => {
+            let res = await fetch(`http://${link}/api/v1/games`, {
+                headers: {
+                    Authorization: token,
+                },
+            });
+            let data = await res.json();
+            list.textContent = "";
+            console.log(data.data.rows, "===")
+            if (data.data.rows.length === 0) {
+                list.textContent = "No game list found"
+            } else {
+                data.data.rows.forEach((item) => {
+                    let li = document.createElement("li");
+                    li.innerHTML =
+                        "<b>" +
+                        item.name +
+                        "</b><br>ID = " +
+                        item.gameId +
+                        "<br>Total duration of this game (ms) = " +
+                        item.duration +
+                        "<br>Players per game = " +
+                        item.totalSlots;
+                    list.appendChild(li);
+                    let button = document.createElement("button");
+                    button.textContent = "Enter this game";
+                    button.onclick = () =>
+                        getRoomDetails(item.gameId, item.totalSlots, item.duration);
+                    list.appendChild(button);
+                });
+            }
+        };
+
+        const getRoomDetails = (gameId, totalSlots, duration) => {
+            const socket = io({
+                extraHeaders: {
+                    Authorization: token,
+                },
+            });
+
+            socket.on("connect_error", (error) => {
+                console.error("Connection failed:", error.message);
+                alert(error);
+            });
+
+            const updateScores = ({ roomId, userId, score }) => {
+                socket.emit("UPDATE_SCORES", { roomId, userId, score });
+            };
+
+            socket.emit("IS_USER_ALREADY_PLAYING");
+            socket.on("IS_USER_ALREADY_PLAYING", (data1) => {
+                console.log(data1, "data1");
+                if (!data1?.success) {
+                    rejoinRoomButton.style.display = "none";
+                    socket.emit("GET_AVAILABLE_ROOMS", {
+                        gameId,
+                        totalSlots,
+                        duration,
+                    });
+                    socket.on("GET_AVAILABLE_ROOMS", (data2) => {
+                        console.log(data2, "data2");
+                        document.getElementById("roomDetails").innerHTML =
+                            "Player joined room =<br>" +
+                            data2?.data?.roomId +
+                            "<br>Users: " +
+                            JSON.stringify(data2?.data?.userIds) +
+                            "<br>Scores: " +
+                            JSON.stringify(data2?.data?.scores) +
+                            "<br>Status: " +
+                            data2?.status?.message;
+                        if (data2?.status?.step === 2) {
+                            updateScoresDiv.style.display = "block";
+                            updateScoresList.textContent = "";
+                            data2?.data?.scores.forEach((item, index) => {
+                                let li = document.createElement("li");
+                                let input = document.createElement("input");
+                                input.placeholder = `Player ${index + 1}`;
+                                input.type = "number";
+                                let button = document.createElement("button");
+                                button.textContent = "Update score";
+                                button.onclick = () =>
+                                    updateScores({
+                                        roomId: data2?.data?.roomId,
+                                        userId: data2?.data?.userIds[index],
+                                        score: input.value,
+                                    });
+                                li.appendChild(input);
+                                li.appendChild(button);
+                                updateScoresList.appendChild(li);
+                            });
+                        } else {
+                            updateScoresDiv.style.display = "none";
+                        }
+                    });
+                } else {
+                    rejoinRoomId = data1?.data?.roomId;
+                    rejoinRoomButton.style.display = "block";
+                    document.getElementById("roomDetails").innerHTML =
+                        "Player is already in room =<br>" +
+                        data1?.data?.roomId +
+                        "<br>Users: " +
+                        JSON.stringify(data1?.data?.userIds) +
+                        "<br>Scores: " +
+                        JSON.stringify(data1?.data?.scores) +
+                        "<br>Status: " +
+                        data1?.status;
                 }
             });
-            console.log(res, "RES");
-            let data = await res.json();
-            console.log(data, "DATA")
-        }
+        };
 
-        const socket = io({
-            extraHeaders: {
-                Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxYTg5NjkyYy01NjFhLTRjOTAtYjczMC0xZjM0MjkzMWM0MzAiLCJpYXQiOjE3MzEwMzcxODYsImV4cCI6MTczMTA0MDc4Nn0.Q_75DIUBR_bwP8dUM8jJMwYWbfk5F0jR3VHcgkJbQpw`
+        const rejoinRoom = () => {
+            rejoinRoomButton.style.display = "none";
+            const socket = io({
+                extraHeaders: {
+                    Authorization: token,
+                },
+            });
+
+            const updateScores = ({ roomId, userId, score }) => {
+                socket.emit("UPDATE_SCORES", { roomId, userId, score });
+            };
+
+            socket.emit("REJOIN_GAME", rejoinRoomId);
+
+            socket.on("GET_AVAILABLE_ROOMS", (data2) => {
+                console.log(data2, "data2");
+                document.getElementById("roomDetails").innerHTML =
+                    "Player joined room =<br>" +
+                    data2?.data?.roomId +
+                    "<br>Users: " +
+                    JSON.stringify(data2?.data?.userIds) +
+                    "<br>Scores: " +
+                    JSON.stringify(data2?.data?.scores) +
+                    "<br>Status: " +
+                    data2?.status?.message;
+                if (data2?.status?.step === 2) {
+                    updateScoresDiv.style.display = "block";
+                    updateScoresList.textContent = "";
+                    data2?.data?.scores.forEach((item, index) => {
+                        let li = document.createElement("li");
+                        let input = document.createElement("input");
+                        input.placeholder = `Player ${index + 1}`;
+                        input.type = "number";
+                        let button = document.createElement("button");
+                        button.textContent = "Update score";
+                        button.onclick = () =>
+                            updateScores({
+                                roomId: data2?.data?.roomId,
+                                userId: data2?.data?.userIds[index],
+                                score: input.value,
+                            });
+                        li.appendChild(input);
+                        li.appendChild(button);
+                        updateScoresList.appendChild(li);
+                    });
+                } else {
+                    updateScoresDiv.style.display = "none";
+                }
+            });
+        };
+
+        const loginUser = async () => {
+            if (!userEmail.value) {
+                alert("Please write email address");
             }
-        });
+            {
+                let res = await fetch(`http://${link}/api/v1/auth/login`, {
+                    method: "POST",
+                    headers: {
+                        "Content-type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        loginType: "email",
+                        email: userEmail.value,
+                    }),
+                });
+                let data = await res.json();
+                token = "Bearer " + data?.data?.accessToken;
+                loginDetails.innerHTML = "Logged in successfully"
+                loginDetails.style.display = "block";
+                console.log(data?.data?.accessToken);
+            }
+        };
 
-        socket.on("connect_error", (error) => {
-            console.error("Connection failed:", error.message);
-            alert(error);
-        });
-
-        socket.emit('GET_AVAILABLE_ROOMS', { gameId: "100", totalSlots: 2 });
-        socket.on('GET_AVAILABLE_ROOMS', (data) => console.log(data, "DATA"));
-
-        document.getElementById('joinRoomButton').addEventListener('click', () => {
-            const userId = document.getElementById('userId').value;
-            const roomId = document.getElementById('roomId').value;
-
-            // Emit request to join a room
-            socket.emit('JOIN_ROOM', { roomId, userId });
-        });
-
-        document.getElementById('createRoomButton').addEventListener('click', () => {
-            const userId = document.getElementById('userId').value;
-            const roomId = document.getElementById('roomId').value;
-
-            // Emit request to create a room
-            socket.emit('ROOM_CREATED', { gameId: "100", roomId, userId, totalSlots: 2 });
-        });
-
-        // Listen for room joined event
-        socket.on('ROOM_JOINED', (data) => {
-            const { roomId, userId } = data;
-            document.getElementById('status').innerText = `User ${userId} joined room ${roomId}`;
-            updateRoomMembers(roomId);
-        });
-
-        // Listen for room creation event
-        socket.on('roomCreated', (data) => {
-            const { roomId, userIds } = data;
-            document.getElementById('status').innerText = `Room ${roomId} created. Users: ${userIds.join(', ')}`;
-            updateRoomMembers(roomId);
-        });
-
-        // Update room members (example implementation)
-        function updateRoomMembers(roomId) {
-            // Assume you have logic to get members from your server (this is a placeholder)
-            // Here, just updating the UI manually for demo purposes
-            const userId = document.getElementById('userId').value;
-            const roomMembersList = document.getElementById('roomMembers');
-            const li = document.createElement('li');
-            li.innerText = `${userId} in room ${roomId}`;
-            roomMembersList.appendChild(li);
-        }
     </script>
 </body>
 

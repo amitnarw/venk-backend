@@ -9,6 +9,7 @@ export interface RoomDetails {
     scores: number[];
     joinedAt: Date[];
     disconnectedAt: (Date | number)[];
+    bet: number;
 }
 
 export interface RoomData {
@@ -36,6 +37,7 @@ export interface createNewGameAttributes {
     duration: number;
     io: any;
     socket: any;
+    bet: number;
 }
 
 export interface updateAvailableRoomAttributes {

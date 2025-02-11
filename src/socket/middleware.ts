@@ -6,7 +6,7 @@ import { verifyToken } from "../utils/handleToken";
 
 export const validateSocket = async (socket: Socket, next: (err?: Error) => void) => {
     const token = socket.handshake.headers.authorization?.split(" ")[1];
-    console.log(token ,'ppppppppppppppp')
+    console.log(token ,'--------user token in backend------------')
     if (token) {
         let validateToken: any = await verifyToken(token, "access");
 

@@ -34,8 +34,12 @@ const checkIfRoomActive = (roomId: string) => {
     return activeRooms.includes(roomId);
 }
 
-const checkIfRoomAvailable = (gameId: string) => {
-    const roomId = gameData[gameId].find(roomId => availableRooms.includes(roomId));
+const checkIfRoomAvailable = (gameId: string, bet: number) => {
+    const roomId = gameData[gameId].find(roomId => {
+        console.log(availableRooms.includes(roomId), roomData[roomId].bet === bet, roomData[roomId].bet, bet, '0000000000000000');
+        return availableRooms.includes(roomId) && roomData[roomId].bet === bet;
+    });
+
     return roomId || null;
 }
 
@@ -104,7 +108,7 @@ const updateAvailableRoom = async ({ gameId, roomId, userId, io, socket }: updat
     }
 }
 
-const createNewAvailableRoom = async ({ gameId, totalSlots, userId, duration, io, socket }: createNewGameAttributes) => {
+const createNewAvailableRoom = async ({ gameId, totalSlots, userId, duration, io, socket, bet }: createNewGameAttributes) => {
     const roomId = `roomId-${uuid_v4()}`;
     availableRooms.push(roomId);
     gameData[gameId].push(roomId);
@@ -124,13 +128,14 @@ const createNewAvailableRoom = async ({ gameId, totalSlots, userId, duration, io
         userDetails: [userData],
         scores: [0],
         joinedAt: [new Date()],
-        disconnectedAt: [0]
+        disconnectedAt: [0],
+        bet: bet
     }
     roomData[roomId] = newData;
     commonProcessWaiting({ roomId, gameId, userId, io, socket });
 }
 
-const createNewGame = async ({ gameId, totalSlots, userId, duration, io, socket }: createNewGameAttributes) => {
+const createNewGame = async ({ gameId, totalSlots, userId, duration, io, socket, bet }: createNewGameAttributes) => {
     const roomId = `roomId-${uuid_v4()}`;
     activeGames.push(gameId);
     availableRooms.push(roomId);
@@ -150,9 +155,9 @@ const createNewGame = async ({ gameId, totalSlots, userId, duration, io, socket 
         userIds: [userId],
         userDetails: [userData],
         scores: [0],
-        // bet: bet,
         joinedAt: [new Date()],
-        disconnectedAt: [0]
+        disconnectedAt: [0],
+        bet: bet,
     }
     roomData[roomId] = newData;
     commonProcessWaiting({ roomId, gameId, userId, io, socket });
@@ -206,7 +211,7 @@ const commonProcessStartGame = async ({ roomId, gameId, userId, io, socket }: { 
         });
 
         clearTimer(roomId);
-
+console.log(roomId, 2, 'gameComplete', roomData[roomId]?.duration, roomData[roomId], 'rrrrrrrrrrrrrrrrrrr')
         startTimer(roomId, 2, 'gameComplete', roomData[roomId]?.duration, async () => {
             emitStatus({ io, socket, roomId, message: "Game over", duration: 0, step: 3 });
             await Rooms.update({
@@ -305,7 +310,23 @@ const removeDisconnectUserBeforeStart = ({ io, socket, userId }: { io: any, sock
 // });
 
 
-export { 
+const checkUserBalance = async ({ userId, bet }: { userId: string, bet: number }) => {
+    try {
+        let userData = await Users.findOne({
+            where: {
+                userId
+            },
+            attributes: ["balance"]
+        });
+        if(!userData) return false;
+        return bet <= userData?.dataValues?.balance
+    } catch (err) {
+        console.log(err, 'xxxxxxxxERRORxxxxxxxxxx')
+    }
+}
+
+
+export {
     getAllActiveGames,
     getAllActiveRooms,
     getAllAvailableRooms,
@@ -323,5 +344,6 @@ export {
     createNewGame,
     rejoinGame,
     addConnectedUserInList,
-    removeDisconnectUserBeforeStart 
+    removeDisconnectUserBeforeStart,
+    checkUserBalance
 }
