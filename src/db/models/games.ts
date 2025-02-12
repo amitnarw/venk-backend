@@ -38,8 +38,7 @@ const Games = sequelize.define('games', {
   },
   bets: {
     type: DataTypes.ARRAY(DataTypes.INTEGER),
-    allowNull: true,
-    defaultValue: [0],
+    allowNull: false,
   }
 }, {
   modelName: 'games',

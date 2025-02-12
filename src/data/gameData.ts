@@ -4,6 +4,8 @@ import { Rooms, Users } from '../db/models';
 import { checkTimer, clearTimer, startTimer } from '../utils/timerManager';
 import { Socket } from 'socket.io';
 import { aiData } from '../utils/demoAiData';
+import sequelize from '../db/dbConnect';
+import { Op } from 'sequelize';
 
 let activeGames: string[] = [];
 let availableRooms: string[] = [];
@@ -186,8 +188,10 @@ const commonProcessStartGame = async ({ roomId, gameId, userId, io, socket, bet 
     }
 
     if (roomData[roomId]?.userIds.length > 0) {
+        // const transaction = await sequelize.transaction();
         fromAvailableToActive(roomId);
         if (roomData[roomId]?.userIds.length === 1) {
+
             let getAiData = aiData[Math.floor(Math.random() * aiData.length)]
             roomData[roomId].remainingSlots -= 1;
             roomData[roomId].userIds.push(getAiData.userId);
@@ -195,59 +199,145 @@ const commonProcessStartGame = async ({ roomId, gameId, userId, io, socket, bet 
             roomData[roomId].joinedAt.push(new Date());
             roomData[roomId].disconnectedAt.push(0);
             roomData[roomId].userDetails.push(getAiData);
-
+            const transaction = await sequelize.transaction();
             emitStatus({ io, socket, roomId, message: "Game started", duration: roomData[roomId]?.duration, step: 2, aiPlay: true });
+            try {
+                await Rooms.create({
+                    gameId,
+                    roomId,
+                    userIds: roomData[roomId]?.userIds,
+                    scores: roomData[roomId]?.scores,
+                    joinedAt: roomData[roomId]?.joinedAt,
+                    disconnectedAt: roomData[roomId]?.disconnectedAt,
+                    status: "active",
+                    startTime: new Date(),
+                    aiPlay: true,
+                    winnerUserId: 0,
+                    bet: bet,
+                    winAmount: 0
+                },
+                    { transaction }
+                );
 
-            await Rooms.create({
-                gameId,
-                roomId,
-                userIds: roomData[roomId]?.userIds,
-                scores: roomData[roomId]?.scores,
-                joinedAt: roomData[roomId]?.joinedAt,
-                disconnectedAt: roomData[roomId]?.disconnectedAt,
-                status: "active",
-                startTime: new Date(),
-                aiPlay: true,
-                bet: bet
-            });
+                await Users.update(
+                    {
+                        balance: sequelize.literal(`balance - ${bet}`)
+                    },
+                    {
+                        where: {
+                            userId: { 
+                                [Op.in]: roomData[roomId]?.userIds
+                            },
+                        },
+                        transaction
+                    }
+                );
+                await transaction.commit();
+            } catch (err) {
+                await transaction.rollback();
+            }
+
         } else {
             emitStatus({ io, socket, roomId, message: "Game started", duration: roomData[roomId]?.duration, step: 2, aiPlay: false });
+            const transaction = await sequelize.transaction();
+            try {
+                await Rooms.create({
+                    gameId,
+                    roomId,
+                    userIds: roomData[roomId]?.userIds,
+                    scores: roomData[roomId]?.scores,
+                    joinedAt: roomData[roomId]?.joinedAt,
+                    disconnectedAt: roomData[roomId]?.disconnectedAt,
+                    status: "active",
+                    startTime: new Date(),
+                    aiPlay: false,
+                    winnerUserId: 0,
+                    bet: bet,
+                    winAmount: 0
+                },
+                    { transaction }
+                );
+                await Users.update(
+                    {
+                        balance: sequelize.literal(`balance - ${bet}`)
+                    },
+                    {
+                        where: {
+                            userId: { 
+                                [Op.in]: roomData[roomId]?.userIds
+                            },
+                        },
+                        transaction
+                    }
+                );
+                await transaction.commit();
+            } catch (err) {
+                await transaction.rollback();
+            }
 
-            await Rooms.create({
-                gameId,
-                roomId,
-                userIds: roomData[roomId]?.userIds,
-                scores: roomData[roomId]?.scores,
-                joinedAt: roomData[roomId]?.joinedAt,
-                disconnectedAt: roomData[roomId]?.disconnectedAt,
-                status: "active",
-                startTime: new Date(),
-                aiPlay: false,
-                bet: bet
-            });
         }
 
         clearTimer(roomId);
 
         startTimer(roomId, 2, 'gameComplete', roomData[roomId]?.duration, async () => {
-            let winnerUserId = roomData[roomId]?.scores[0] > roomData[roomId]?.scores[1] ? roomData[roomId]?.userIds[0] : roomData[roomId]?.userIds[1];
-            
-            emitStatus({ io, socket, roomId, message: "Game over", duration: 0, step: 3, winnerUserId: winnerUserId, winAmount: bet * roomData[roomId]?.userIds?.length });
-            await Rooms.update({
-                // userIds: roomData[roomId]?.userIds,
-                scores: roomData[roomId]?.scores,
-                // joinedAt: roomData[roomId]?.joinedAt,
-                disconnectedAt: roomData[roomId]?.disconnectedAt,
-                status: "finished",
-                endTime: Date.now(),
-                winnerUserId: winnerUserId,
-                winAmount: bet * roomData[roomId]?.userIds?.length
-            }, {
-                where: {
-                    roomId,
-                    status: "active"
+            // let winnerUserId = roomData[roomId]?.scores[0] > roomData[roomId]?.scores[1] ? roomData[roomId]?.userIds[0] : roomData[roomId]?.userIds[1];
+            let winnerUserId = roomData[roomId]?.scores[0] === roomData[roomId]?.scores[1] ? "0" : roomData[roomId]?.scores[0] > roomData[roomId]?.scores[1] ? roomData[roomId]?.userIds[0] : roomData[roomId]?.userIds[1];
+            let winningAmount = roomData[roomId]?.scores[0] === roomData[roomId]?.scores[1] ? bet : bet * roomData[roomId]?.userIds?.length;
+console.log(winnerUserId, winningAmount, '-----check==========')
+            emitStatus({ io, socket, roomId, message: "Game over", duration: 0, step: 3, winnerUserId: winnerUserId, winAmount: winningAmount });
+            const transaction = await sequelize.transaction();
+            try {
+                await Rooms.update({
+                    // userIds: roomData[roomId]?.userIds,
+                    scores: roomData[roomId]?.scores,
+                    // joinedAt: roomData[roomId]?.joinedAt,
+                    disconnectedAt: roomData[roomId]?.disconnectedAt,
+                    status: "finished",
+                    endTime: Date.now(),
+                    winnerUserId: winnerUserId,
+                    winAmount: winningAmount
+                }, {
+                    where: {
+                        roomId,
+                        status: "active"
+                    },
+                    transaction
+                });
+
+                if(winnerUserId === "0"){
+                    console.log(1111)
+                    await Users.update(
+                        {
+                            balance: sequelize.literal(`balance + ${winningAmount}`)
+                        },
+                        {
+                            where: {
+                                userId: { 
+                                    [Op.in]: roomData[roomId]?.userIds
+                                },
+                            },
+                            transaction
+                        }
+                    );
+                } else {
+                    console.log(2222)
+                    await Users.update(
+                        {
+                            balance: sequelize.literal(`balance + ${winningAmount}`)
+                        },
+                        {
+                            where: {
+                                userId: winnerUserId
+                            },
+                            transaction
+                        }
+                    );
                 }
-            });
+                await transaction.commit();
+            } catch (err) {
+                await transaction.rollback();
+            }
+
             clearTimer(roomId);
             delete roomData[roomId];
             activeRooms = activeRooms.filter((item) => item !== roomId);

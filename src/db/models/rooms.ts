@@ -54,8 +54,16 @@ const Rooms = sequelize.define('rooms', {
   },
   winnerUserId: {
     type: DataTypes.STRING,
-    allowNull: true,
+    allowNull: false,
   },
+  bet: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  winAmount: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  }
 }, {
   modelName: 'rooms',
   timestamps: true,

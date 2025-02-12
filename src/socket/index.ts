@@ -9,7 +9,7 @@ const socketSetup = (io: Server) => {
     console.log('2', '======================================')
     io.use(validateSocket);
     io.on("connection", async (socket) => {
-        console.log('user connected', socket.data.user.userId, socket.id);
+        console.log('++user connected++', socket.data.user.userId, socket.id);
         addConnectedUserInList(socket.data.user.userId);
 
         await alreadyInRoomHandler(io, socket);
@@ -17,7 +17,7 @@ const socketSetup = (io: Server) => {
         gameHandlers(io, socket);
 
         socket.on("disconnect", () => {
-            console.log("User disconnect", socket.id);
+            console.log("xxUser disconnectxx", socket.id);
             removeDisconnectUserBeforeStart({ io, socket, userId: socket.data.user.userId });
         })
     })

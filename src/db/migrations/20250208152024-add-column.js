@@ -11,7 +11,7 @@ module.exports = {
      */
     await queryInterface.addColumn('games', 'bets', {
       type: Sequelize.ARRAY(Sequelize.INTEGER),
-      allowNull: true,
+      allowNull: false,
       defaultValue: [0],
     });
     await queryInterface.addColumn('rooms', 'bet', {
