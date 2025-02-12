@@ -225,7 +225,7 @@ const commonProcessStartGame = async ({ roomId, gameId, userId, io, socket, bet 
                     },
                     {
                         where: {
-                            userId: { 
+                            userId: {
                                 [Op.in]: roomData[roomId]?.userIds
                             },
                         },
@@ -263,7 +263,7 @@ const commonProcessStartGame = async ({ roomId, gameId, userId, io, socket, bet 
                     },
                     {
                         where: {
-                            userId: { 
+                            userId: {
                                 [Op.in]: roomData[roomId]?.userIds
                             },
                         },
@@ -283,7 +283,7 @@ const commonProcessStartGame = async ({ roomId, gameId, userId, io, socket, bet 
             // let winnerUserId = roomData[roomId]?.scores[0] > roomData[roomId]?.scores[1] ? roomData[roomId]?.userIds[0] : roomData[roomId]?.userIds[1];
             let winnerUserId = roomData[roomId]?.scores[0] === roomData[roomId]?.scores[1] ? "0" : roomData[roomId]?.scores[0] > roomData[roomId]?.scores[1] ? roomData[roomId]?.userIds[0] : roomData[roomId]?.userIds[1];
             let winningAmount = roomData[roomId]?.scores[0] === roomData[roomId]?.scores[1] ? bet : bet * roomData[roomId]?.userIds?.length;
-console.log(winnerUserId, winningAmount, '-----check==========')
+            console.log(winnerUserId, winningAmount, '-----check==========')
             emitStatus({ io, socket, roomId, message: "Game over", duration: 0, step: 3, winnerUserId: winnerUserId, winAmount: winningAmount });
             const transaction = await sequelize.transaction();
             try {
@@ -304,7 +304,7 @@ console.log(winnerUserId, winningAmount, '-----check==========')
                     transaction
                 });
 
-                if(winnerUserId === "0"){
+                if (winnerUserId === "0") {
                     console.log(1111)
                     await Users.update(
                         {
@@ -312,7 +312,7 @@ console.log(winnerUserId, winningAmount, '-----check==========')
                         },
                         {
                             where: {
-                                userId: { 
+                                userId: {
                                     [Op.in]: roomData[roomId]?.userIds
                                 },
                             },
@@ -357,7 +357,11 @@ console.log(winnerUserId, winningAmount, '-----check==========')
 
 const emitStatus = ({ io, socket, roomId, message, duration, step, aiPlay, winnerUserId, winAmount }: { io: any, socket: any, roomId: string, message: string, duration: number, step: number, aiPlay?: boolean, winnerUserId?: string, winAmount?: number }) => {
     socket.join(roomId);
-    io.to(roomId).emit("GET_AVAILABLE_ROOMS", { statusCode: 200, data: roomData[roomId], status: { message, duration, step, winnerUserId, winAmount }, success: true, aiPlay })
+    if (step === 3) {
+        io.to(roomId).emit("MATCH_OVER", { statusCode: 200, data: roomData[roomId], status: { message, duration, step, winnerUserId, winAmount }, success: true, aiPlay })
+    } else {
+        io.to(roomId).emit("GET_AVAILABLE_ROOMS", { statusCode: 200, data: roomData[roomId], status: { message, duration, step, winnerUserId, winAmount }, success: true, aiPlay })
+    }
 }
 
 const fromAvailableToActive = (roomId: string) => {
