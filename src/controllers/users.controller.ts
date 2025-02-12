@@ -151,4 +151,30 @@ const getBalance = async (req: AuthenticatedRequest, res: Response) => {
     }
 }
 
-export { getUserDetails, getUserTransactions, createUserTransaction, getBalance }
+const addBalance = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const userId = req?.userId;
+        let checkUser = await Users.findOne({
+            where: {
+                userId
+            },
+        });
+        if (!checkUser) {
+            return sendError(res, 404, "User not found", ERROR_CODES.USER_NOT_FOUND);
+        }
+        await Users.increment({
+            balance: 100
+        }, {
+            where: {
+                userId
+            },
+        });
+
+        return sendSuccess(res, 200, "100 balance added");
+
+    } catch (err) {
+        return sendError(res, 500, `Error while adding user transaction: ${err}`, ERROR_CODES.SERVER_ERROR);
+    }
+}
+
+export { getUserDetails, getUserTransactions, createUserTransaction, getBalance, addBalance }
