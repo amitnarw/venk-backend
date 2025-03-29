@@ -7,4 +7,5 @@ export interface TimersAttributes {
     type: TimerType;
     startTime: number;
     duration: number;
+    callback: () => void;
 };

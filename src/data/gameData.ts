@@ -168,9 +168,10 @@ const createNewGame = async ({ gameId, totalSlots, userId, duration, io, socket,
 const commonProcessWaiting = ({ roomId, gameId, userId, io, socket, bet }: { roomId: string, gameId: string, userId: string, io: any, socket: any, bet: number }) => {
 
     emitStatus({ io, socket, roomId, message: `Room created, waiting for ${roomData[roomId].remainingSlots} players`, duration: 20000, step: 1 });
-    startTimer(roomId, 1, 'timeout', 20000, async () => {
-        commonProcessStartGame({ roomId, gameId, userId, io, socket, bet });
-    });
+    startTimer(roomId, 1, 'timeout', 20000,
+        async () => {
+            commonProcessStartGame({ roomId, gameId, userId, io, socket, bet });
+        }, io);
 }
 
 
@@ -179,28 +180,36 @@ const commonProcessStartGame = async ({ roomId, gameId, userId, io, socket, bet 
     for (const roomId in roomData) {
         if (roomData.hasOwnProperty(roomId)) {
             const room = roomData[roomId];
-            const filteredUserIds = room.userIds.filter(userId => connectedUserIds.includes(userId));
+            // Keep AI players intact while filtering
+            const filteredUserIds = room.userIds.filter(userId => 
+                connectedUserIds.includes(userId) || userId.startsWith('ai-')
+            );
             room.userIds = filteredUserIds;
             room.scores = room.scores.filter((_, index) => filteredUserIds.includes(room.userIds[index]));
             room.joinedAt = room.joinedAt.filter((_, index) => filteredUserIds.includes(room.userIds[index]));
             room.disconnectedAt = room.disconnectedAt.filter((_, index) => filteredUserIds.includes(room.userIds[index]));
+            room.userDetails = room.userDetails.filter(user => 
+                connectedUserIds.includes(user.userId) || user.userId.startsWith('ai-')
+            );
         }
     }
 
     if (roomData[roomId]?.userIds.length > 0) {
-        // const transaction = await sequelize.transaction();
         fromAvailableToActive(roomId);
-        if (roomData[roomId]?.userIds.length === 1) {
 
-            let getAiData = aiData[Math.floor(Math.random() * aiData.length)]
+        if (roomData[roomId]?.userIds.length === 1) {
+            // Add AI player if only one player exists after 20 seconds
+            let getAiData = aiData[Math.floor(Math.random() * aiData.length)];
             roomData[roomId].remainingSlots -= 1;
             roomData[roomId].userIds.push(getAiData.userId);
             roomData[roomId].scores.push(0);
             roomData[roomId].joinedAt.push(new Date());
             roomData[roomId].disconnectedAt.push(0);
             roomData[roomId].userDetails.push(getAiData);
+
             const transaction = await sequelize.transaction();
             emitStatus({ io, socket, roomId, message: "Game started", duration: roomData[roomId]?.duration, step: 2, aiPlay: true });
+
             try {
                 await Rooms.create({
                     gameId,
@@ -215,9 +224,7 @@ const commonProcessStartGame = async ({ roomId, gameId, userId, io, socket, bet 
                     winnerUserId: 0,
                     bet: bet,
                     winAmount: 0
-                },
-                    { transaction }
-                );
+                }, { transaction });
 
                 await Users.update(
                     {
@@ -227,7 +234,7 @@ const commonProcessStartGame = async ({ roomId, gameId, userId, io, socket, bet 
                         where: {
                             userId: {
                                 [Op.in]: roomData[roomId]?.userIds
-                            },
+                            }
                         },
                         transaction
                     }
@@ -236,10 +243,11 @@ const commonProcessStartGame = async ({ roomId, gameId, userId, io, socket, bet 
             } catch (err) {
                 await transaction.rollback();
             }
-
         } else {
+            // Start game with two real players
             emitStatus({ io, socket, roomId, message: "Game started", duration: roomData[roomId]?.duration, step: 2, aiPlay: false });
             const transaction = await sequelize.transaction();
+
             try {
                 await Rooms.create({
                     gameId,
@@ -254,9 +262,8 @@ const commonProcessStartGame = async ({ roomId, gameId, userId, io, socket, bet 
                     winnerUserId: 0,
                     bet: bet,
                     winAmount: 0
-                },
-                    { transaction }
-                );
+                }, { transaction });
+
                 await Users.update(
                     {
                         balance: sequelize.literal(`balance - ${bet}`)
@@ -265,7 +272,7 @@ const commonProcessStartGame = async ({ roomId, gameId, userId, io, socket, bet 
                         where: {
                             userId: {
                                 [Op.in]: roomData[roomId]?.userIds
-                            },
+                            }
                         },
                         transaction
                     }
@@ -274,23 +281,39 @@ const commonProcessStartGame = async ({ roomId, gameId, userId, io, socket, bet 
             } catch (err) {
                 await transaction.rollback();
             }
-
         }
 
+        // Start game timer
         clearTimer(roomId);
-
         startTimer(roomId, 2, 'gameComplete', roomData[roomId]?.duration, async () => {
-            // let winnerUserId = roomData[roomId]?.scores[0] > roomData[roomId]?.scores[1] ? roomData[roomId]?.userIds[0] : roomData[roomId]?.userIds[1];
-            let winnerUserId = roomData[roomId]?.scores[0] === roomData[roomId]?.scores[1] ? "0" : roomData[roomId]?.scores[0] > roomData[roomId]?.scores[1] ? roomData[roomId]?.userIds[0] : roomData[roomId]?.userIds[1];
-            let winningAmount = roomData[roomId]?.scores[0] === roomData[roomId]?.scores[1] ? bet : bet * roomData[roomId]?.userIds?.length;
-            console.log(winnerUserId, winningAmount, '-----check==========')
-            emitStatus({ io, socket, roomId, message: "Game over", duration: 0, step: 3, winnerUserId: winnerUserId, winAmount: winningAmount });
+            let winnerUserId =
+                roomData[roomId]?.scores[0] === roomData[roomId]?.scores[1]
+                    ? "0"
+                    : roomData[roomId]?.scores[0] > roomData[roomId]?.scores[1]
+                        ? roomData[roomId]?.userIds[0]
+                        : roomData[roomId]?.userIds[1];
+
+            let winningAmount =
+                roomData[roomId]?.scores[0] === roomData[roomId]?.scores[1]
+                    ? bet
+                    : bet * roomData[roomId]?.userIds.length;
+
+            emitStatus({
+                io,
+                socket,
+                roomId,
+                message: "Game over",
+                duration: 0,
+                step: 3,
+                winnerUserId: winnerUserId,
+                winAmount: winningAmount
+            });
+
             const transaction = await sequelize.transaction();
+
             try {
                 await Rooms.update({
-                    // userIds: roomData[roomId]?.userIds,
                     scores: roomData[roomId]?.scores,
-                    // joinedAt: roomData[roomId]?.joinedAt,
                     disconnectedAt: roomData[roomId]?.disconnectedAt,
                     status: "finished",
                     endTime: Date.now(),
@@ -305,7 +328,7 @@ const commonProcessStartGame = async ({ roomId, gameId, userId, io, socket, bet 
                 });
 
                 if (winnerUserId === "0") {
-                    console.log(1111)
+                    // Draw: distribute the winning amount equally
                     await Users.update(
                         {
                             balance: sequelize.literal(`balance + ${winningAmount}`)
@@ -314,13 +337,13 @@ const commonProcessStartGame = async ({ roomId, gameId, userId, io, socket, bet 
                             where: {
                                 userId: {
                                     [Op.in]: roomData[roomId]?.userIds
-                                },
+                                }
                             },
                             transaction
                         }
                     );
                 } else {
-                    console.log(2222)
+                    // Win: credit winning amount to the winner
                     await Users.update(
                         {
                             balance: sequelize.literal(`balance + ${winningAmount}`)
@@ -340,24 +363,33 @@ const commonProcessStartGame = async ({ roomId, gameId, userId, io, socket, bet 
 
             clearTimer(roomId);
             delete roomData[roomId];
-            activeRooms = activeRooms.filter((item) => item !== roomId);
-            availableRooms = availableRooms.filter((item) => item !== roomId);
-            gameData[gameId] = gameData[gameId]?.filter((item) => item !== roomId);
-        })
+            activeRooms = activeRooms.filter(item => item !== roomId);
+            availableRooms = availableRooms.filter(item => item !== roomId);
+            gameData[gameId] = gameData[gameId]?.filter(item => item !== roomId);
+        }, io);
     } else {
-        console.log('room deleted')
+        // Handle case where no players left in the game
         clearTimer(roomId);
         delete roomData[roomId];
-        activeRooms = activeRooms.filter((item) => item !== roomId);
-        availableRooms = availableRooms.filter((item) => item !== roomId);
-        gameData[gameId] = gameData[gameId]?.filter((item) => item !== roomId);
-        emitStatus({ io, socket, roomId, message: "All players left the game. Game Over", duration: 0, step: 3 });
+        activeRooms = activeRooms.filter(item => item !== roomId);
+        availableRooms = availableRooms.filter(item => item !== roomId);
+        gameData[gameId] = gameData[gameId]?.filter(item => item !== roomId);
+        emitStatus({
+            io,
+            socket,
+            roomId,
+            message: "All players left the game. Game Over",
+            duration: 0,
+            step: 3
+        });
     }
-}
+};
+
 
 const emitStatus = ({ io, socket, roomId, message, duration, step, aiPlay, winnerUserId, winAmount }: { io: any, socket: any, roomId: string, message: string, duration: number, step: number, aiPlay?: boolean, winnerUserId?: string, winAmount?: number }) => {
     socket.join(roomId);
     if (step === 3) {
+        console.log(roomData[roomId], '222222222222222')
         io.to(roomId).emit("MATCH_OVER", { statusCode: 200, data: roomData[roomId], status: { message, duration, step, winnerUserId, winAmount }, success: true, aiPlay })
     } else {
         io.to(roomId).emit("GET_AVAILABLE_ROOMS", { statusCode: 200, data: roomData[roomId], status: { message, duration, step, winnerUserId, winAmount }, success: true, aiPlay })
